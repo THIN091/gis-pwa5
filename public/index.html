@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบติดตามผลการนำเข้าข้อมูล GIS | กปภ.ข.5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<style>
+:root{--blue:#075985;--blue2:#0ea5e9;--navy:#0f2942;--bg:#f5f9fc;--green:#16834b;--orange:#e67e22;--red:#dc3d2e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#172033;font-family:"Noto Sans Thai",sans-serif}
+.card{background:#fff;border:1px solid #e3ebf2;border-radius:16px;box-shadow:0 5px 18px rgba(15,41,66,.06)}
+.small{font-size:12px;color:#64748b}.mono{font-variant-numeric:tabular-nums}
+select,button,input{font-family:inherit}.filter{border:1px solid #d7e1ea;border-radius:10px;background:#fff;padding:9px 12px;font-weight:600;outline:none}
+.filter:focus{border-color:#0ea5e9;box-shadow:0 0 0 3px rgba(14,165,233,.12)}
+.btn{border:0;border-radius:10px;padding:10px 15px;font-weight:700;cursor:pointer}.btn-primary{background:#0b6fae;color:#fff}.btn-primary:hover{background:#095c90}.btn:disabled{opacity:.55;cursor:not-allowed}
+.kpi{min-height:142px}.status-dot{width:9px;height:9px;border-radius:999px;display:inline-block}.scroll{max-height:430px;overflow:auto}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800}
+.badge-ok{background:#e7f7ef;color:#11733f;border:1px solid #c8ecd9}.badge-warn{background:#fff4e7;color:#a8560d;border:1px solid #f6d5b2}.badge-bad{background:#ffebe8;color:#a92f24;border:1px solid #f3c5bf}.badge-empty{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0}
+.progress{height:7px;background:#e8eef3;border-radius:99px;overflow:hidden}.progress>span{display:block;height:100%;border-radius:99px}
+.toast{position:fixed;right:20px;bottom:20px;z-index:100;padding:13px 17px;border-radius:12px;color:#fff;background:#126e46;box-shadow:0 10px 30px rgba(0,0,0,.18);display:none}
+.toast.show{display:block}.loading{opacity:.55;pointer-events:none}
+</style>
+</head>
+<body>
+<header class="bg-white border-b border-slate-200">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-sky-700 text-white flex items-center justify-center font-extrabold text-lg">GIS</div>
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800">ระบบติดตามผลการนำเข้าข้อมูล GIS</h1>
+            <p class="text-slate-500 mt-0.5">การประปาส่วนภูมิภาค เขต 5</p>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="small font-bold">ปีงบประมาณ</label>
+        <select id="year" class="filter">
+          <option value="2565">2565</option><option value="2566">2566</option>
+          <option value="2567">2567</option><option value="2568">2568</option>
+          <option value="2569" selected>2569</option>
+        </select>
+        <label class="small font-bold ml-2">ไตรมาส</label>
+        <select id="quarter" class="filter">
+          <option value="1">ไตรมาส 1 (ต.ค.–ธ.ค.)</option>
+          <option value="2">ไตรมาส 2 (ม.ค.–มี.ค.)</option>
+          <option value="3" selected>ไตรมาส 3 (เม.ย.–มิ.ย.)</option>
+          <option value="4">ไตรมาส 4 (ก.ค.–ก.ย.)</option>
+        </select>
+        <button id="sync" class="btn btn-primary">↻ ดึงข้อมูลจาก MongoDB</button>
+      </div>
+    </div>
+    <div class="mt-3 flex flex-wrap items-center gap-3 text-xs">
+      <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200">
+        <span id="connDot" class="status-dot bg-slate-400"></span><b id="connText">ยังไม่ได้ตรวจสอบการเชื่อมต่อ</b>
+      </span>
+      <span id="lastSync" class="text-slate-500">ยังไม่มีการดึงข้อมูล</span>
+      <span id="modeText" class="text-slate-500"></span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <div id="notice" class="card p-4 border-l-4 border-l-amber-400 bg-amber-50/60">
+    <div class="font-bold text-slate-800">สถานะข้อมูล</div>
+    <div id="noticeText" class="text-sm text-slate-600 mt-1">
+      กำลังเชื่อมต่อฐานข้อมูล MongoDB Atlas ผ่าน Vercel Serverless Function...
+    </div>
+  </div>
+
+  <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+    <div class="card kpi p-5">
+      <div class="text-xs font-bold text-slate-500">ความสำเร็จรวม</div>
+      <div id="kpiCompletion" class="text-4xl font-extrabold text-sky-700 mt-2 mono">0.00%</div>
+      <div class="text-xs text-slate-500 mt-2">จาก <b id="kpiBranches">0</b> สาขาที่มีข้อมูล</div>
+    </div>
+    <div class="card kpi p-5">
+      <div class="text-xs font-bold text-slate-500">ผู้ใช้น้ำ</div>
+      <div id="kpiCustomers" class="text-3xl font-extrabold text-slate-800 mt-2 mono">0</div>
+      <div class="text-xs mt-2"><span class="text-emerald-700 font-bold">นำเข้าแล้ว <span id="kpiImported">0</span></span> · <span class="text-orange-600 font-bold">คงเหลือ <span id="kpiPending">0</span></span></div>
+    </div>
+    <div class="card kpi p-5">
+      <div class="text-xs font-bold text-slate-500">สินทรัพย์ประปา</div>
+      <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+        <div><div id="kpiPipe" class="font-extrabold mono">0</div><div class="text-[10px] text-slate-500">ท่อ (ม.)</div></div>
+        <div><div id="kpiValve" class="font-extrabold mono">0</div><div class="text-[10px] text-slate-500">ประตูน้ำ</div></div>
+        <div><div id="kpiHydrant" class="font-extrabold mono">0</div><div class="text-[10px] text-slate-500">หัวดับเพลิง</div></div>
+      </div>
+    </div>
+    <div class="card kpi p-5">
+      <div class="text-xs font-bold text-slate-500">ความครบถ้วนของข้อมูล</div>
+      <div id="kpiCoverage" class="text-3xl font-extrabold text-indigo-700 mt-2 mono">0 / 20</div>
+      <div class="progress mt-3"><span id="coverageBar" style="width:0%;background:#6366f1"></span></div>
+      <div id="kpiCoverageText" class="text-xs text-slate-500 mt-2">ยังไม่พบข้อมูล</div>
+    </div>
+  </section>
+
+  <section class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+    <div class="card p-5 xl:col-span-3">
+      <div class="flex justify-between items-start gap-3">
+        <div><h2 class="font-extrabold text-lg">ความสำเร็จแยกตามสาขา</h2><p class="small mt-1">เรียงจากความสำเร็จน้อยไปมาก</p></div>
+        <div id="chartLegend" class="text-[11px] text-slate-500">—</div>
+      </div>
+      <div id="barChart" class="mt-2"></div>
+    </div>
+    <div class="card p-5 xl:col-span-2">
+      <div><h2 class="font-extrabold text-lg">ภาพรวมตามปีงบประมาณ</h2><p class="small mt-1">ดูแนวโน้มจากข้อมูลที่ MongoDB ส่งกลับ</p></div>
+      <div id="yearChart" class="mt-3"></div>
+    </div>
+  </section>
+
+  <section class="card overflow-hidden">
+    <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div><h2 class="font-extrabold text-lg">ตรวจสอบข้อมูลรายสาขา</h2><p class="small mt-1">แยกชัดเจนระหว่าง “ไม่มีข้อมูล” กับ “ข้อมูล 0”</p></div>
+      <div class="flex gap-2 text-[11px] font-bold">
+        <span class="badge badge-ok">มีข้อมูล</span><span class="badge badge-empty">ไม่พบข้อมูล</span>
+      </div>
+    </div>
+    <div class="scroll">
+      <table class="w-full text-sm">
+        <thead class="sticky top-0 bg-slate-50 z-10 border-b border-slate-200">
+          <tr>
+            <th class="text-left px-5 py-3">#</th><th class="text-left px-5 py-3">สาขา</th>
+            <th class="text-right px-5 py-3">ผู้ใช้น้ำ</th><th class="text-right px-5 py-3">นำเข้าแล้ว</th>
+            <th class="text-right px-5 py-3">% สำเร็จ</th><th class="text-center px-5 py-3">สถานะข้อมูล</th>
+          </tr>
+        </thead>
+        <tbody id="branchTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card p-5">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <div>
+        <h2 class="font-extrabold text-lg">ตรวจสอบช่วงข้อมูล 2565–2569</h2>
+        <p class="small mt-1">ใช้ตรวจว่าแต่ละปี/ไตรมาสมีเอกสารในฐานข้อมูลจริงหรือไม่</p>
+      </div>
+      <span class="text-xs text-slate-500">ไม่สร้างข้อมูลปลอมเมื่อ MongoDB ไม่มีรายการ</span>
+    </div>
+    <div id="periodGrid" class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4"></div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const CONFIG = {
+  // ชี้ไปที่ Vercel Serverless Function โดยใช้ Relative Path
+  apiUrl: "/api/dashboard",
+  timeoutMs: 15000
+};
+
+// รายชื่อ 20 สาขาอ้างอิงของ กปภ.ข.5
+const EXPECTED_BRANCHES = [
+  "สงขลา","หาดใหญ่","สะเดา","นาทวี","ระโนด","พังลา",
+  "พัทลุง","เขาชัยสน","ตรัง","ห้วยยอด","ย่านตาขาว","กันตัง",
+  "สตูล","ละงู","ยะหา","เบตง","สายบุรี","นราธิวาส","รือเสาะ","สุไหงโก-ลก"
+];
+
+let records = [];
+let allRecords = [];
+let barChart = null, yearChart = null;
+
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n||0).toLocaleString("th-TH");
+const pct = n => `${Number(n||0).toFixed(2)}%`;
+
+function normalizeRecord(x){
+  const m = x.metrics || {};
+  return {
+    fiscal_year: Number(x.fiscal_year ?? x.year ?? 0),
+    quarter: Number(x.quarter ?? 0),
+    branch: {
+      code: x.branch?.code ?? x.branch_code ?? "",
+      name: x.branch?.name ?? x.branch_name ?? x.name ?? "ไม่ระบุสาขา"
+    },
+    metrics: {
+      customer_count: Number(m.customer_count ?? x.customer_count ?? 0),
+      imported_customer_count: Number(m.imported_customer_count ?? x.imported_customer_count ?? 0),
+      pipe_length_m: Number(m.pipe_length_m ?? x.pipe_length_m ?? 0),
+      valve_count: Number(m.valve_count ?? x.valve_count ?? 0),
+      fire_hydrant_count: Number(m.fire_hydrant_count ?? x.fire_hydrant_count ?? 0),
+      leak_point_count: Number(m.leak_point_count ?? x.leak_point_count ?? 0)
+    }
+  };
+}
+
+function completion(r){
+  const t = r.metrics.customer_count, i = r.metrics.imported_customer_count;
+  return t > 0 ? Math.min(100, (i / t) * 100) : 0;
+}
+
+function setConnection(ok, text){
+  $("connDot").className = "status-dot " + (ok ? "bg-emerald-500" : "bg-red-500");
+  $("connText").textContent = text;
+}
+
+function showToast(msg, ok = true){
+  const t = $("toast"); 
+  t.textContent = msg; 
+  t.style.background = ok ? "#126e46" : "#a92f24"; 
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3200);
+}
+
+async function fetchJson(url){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CONFIG.timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal, headers: { "Accept": "application/json" } });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+    return json;
+  } finally { clearTimeout(timer); }
+}
+
+async function fetchMongo(){
+  const year = $("year").value, quarter = $("quarter").value;
+  try {
+    // 1) ข้อมูลช่วงที่เลือก: ใช้กับ KPI/ตาราง/กราฟสาขา
+    const selected = await fetchJson(`${CONFIG.apiUrl}?year=${encodeURIComponent(year)}&quarter=${encodeURIComponent(quarter)}`);
+
+    // 2) ข้อมูลย้อนหลังทั้งหมด: ใช้กับกราฟปีและตรวจ Q1-Q4 ของ 2565-2569
+    const history = await fetchJson(`/api/history`);
+    const arr = Array.isArray(selected.data) ? selected.data : [];
+    const all = Array.isArray(history.data) ? history.data : [];
+
+    setConnection(true, "เชื่อมต่อ Vercel API สำเร็จ");
+    $("modeText").textContent = "ข้อมูลจริงจาก MongoDB Atlas (ผ่าน Vercel API)";
+    $("lastSync").textContent = "ดึงข้อมูลล่าสุด: " + new Date().toLocaleString("th-TH");
+    $("notice").style.display = "none";
+
+    // ใช้ข้อมูลย้อนหลังสำหรับกราฟ/period และข้อมูลช่วงที่เลือกสำหรับตาราง
+    return { selected: arr.map(normalizeRecord), all: all.map(normalizeRecord) };
+  } catch(err) {
+    setConnection(false, "เชื่อมต่อ API ไม่สำเร็จ");
+    $("modeText").textContent = "ตรวจสอบสถานะ API / Vercel";
+    $("lastSync").textContent = "ผิดพลาด: " + err.message;
+    $("notice").style.display = "block";
+    $("noticeText").textContent = "ไม่สามารถดึงข้อมูลจาก Vercel API ได้ (" + err.message + ") กรุณาตรวจสอบ Vercel Environment Variables และ MongoDB Atlas";
+    showToast("ดึงข้อมูลไม่สำเร็จ", false);
+    return { selected: [], all: [] };
+  }
+}
+function selectedRecords(){
+  const y = Number($("year").value), q = Number($("quarter").value);
+  return records.filter(r => r.fiscal_year === y && r.quarter === q);
+}
+
+function aggregate(arr){
+  return arr.reduce((a, r) => {
+    a.customers += r.metrics.customer_count;
+    a.imported += r.metrics.imported_customer_count;
+    a.pipe += r.metrics.pipe_length_m;
+    a.valve += r.metrics.valve_count;
+    a.hydrant += r.metrics.fire_hydrant_count;
+    a.leak += r.metrics.leak_point_count;
+    return a;
+  }, { customers: 0, imported: 0, pipe: 0, valve: 0, hydrant: 0, leak: 0 });
+}
+
+function renderKPI(arr){
+  const a = aggregate(arr), c = a.customers ? Math.min(100, a.imported / a.customers * 100) : 0;
+  const unique = [...new Set(arr.map(r => r.branch.name))];
+  $("kpiCompletion").textContent = pct(c); 
+  $("kpiBranches").textContent = unique.length;
+  $("kpiCustomers").textContent = fmt(a.customers); 
+  $("kpiImported").textContent = fmt(a.imported); 
+  $("kpiPending").textContent = fmt(Math.max(0, a.customers - a.imported));
+  $("kpiPipe").textContent = fmt(a.pipe); 
+  $("kpiValve").textContent = fmt(a.valve); 
+  $("kpiHydrant").textContent = fmt(a.hydrant);
+  
+  const coverage = Math.min(20, unique.filter(x => EXPECTED_BRANCHES.includes(x)).length);
+  $("kpiCoverage").textContent = `${coverage} / 20`; 
+  $("coverageBar").style.width = (coverage / 20 * 100) + "%";
+  $("kpiCoverageText").textContent = coverage === 20 ? "ครบ 20 สาขาอ้างอิง" : `พบข้อมูล ${coverage} จาก 20 สาขาอ้างอิง`;
+}
+
+function renderBar(arr){
+  const sorted = [...arr].sort((a, b) => completion(a) - completion(b));
+  if(!barChart){
+    barChart = new ApexCharts($("barChart"), {
+      chart: { type: "bar", height: 360, toolbar: { show: false }, fontFamily: "Noto Sans Thai" },
+      series: [{ name: "ความสำเร็จ", data: [] }],
+      plotOptions: { bar: { horizontal: true, borderRadius: 5, barHeight: "58%", distributed: true, dataLabels: { position: "right" } } },
+      dataLabels: { enabled: true, formatter: v => v.toFixed(2) + "%", offsetX: 5, style: { fontSize: "11px", colors: ["#334155"] } },
+      xaxis: { min: 0, max: 100, tickAmount: 5, labels: { formatter: v => v + "%" } },
+      yaxis: { labels: { style: { fontSize: "12px", fontWeight: 600 } } },
+      grid: { borderColor: "#e8eef3" },
+      legend: { show: false }
+    }); 
+    barChart.render();
+  }
+  barChart.updateOptions({ xaxis: { categories: sorted.map(r => r.branch.name) } });
+  barChart.updateSeries([{ data: sorted.map(completion) }]);
+  $("chartLegend").textContent = sorted.length ? `${sorted.length} สาขาที่มีข้อมูล` : "ยังไม่มีข้อมูล";
+}
+
+function renderYear(){
+  const vals = [];
+  for(let y = 2565; y <= 2569; y++){
+    const arr = allRecords.filter(r => r.fiscal_year === y);
+    const a = aggregate(arr); 
+    vals.push(a.customers ? +(a.imported / a.customers * 100).toFixed(2) : 0);
+  }
+  if(!yearChart){
+    yearChart = new ApexCharts($("yearChart"), {
+      chart: { type: "line", height: 300, toolbar: { show: false }, fontFamily: "Noto Sans Thai" },
+      series: [{ name: "ความสำเร็จ", data: [] }],
+      stroke: { curve: "smooth", width: 3 },
+      markers: { size: 5 },
+      xaxis: { categories: ["2565", "2566", "2567", "2568", "2569"] },
+      yaxis: { min: 0, max: 100, labels: { formatter: v => v + "%" } },
+      grid: { borderColor: "#e8eef3" },
+      colors: ["#0ea5e9"],
+      dataLabels: { enabled: false }
+    }); 
+    yearChart.render();
+  }
+  yearChart.updateSeries([{ data: vals }]);
+}
+
+function renderTable(arr){
+  const byBranch = new Map(arr.map(r => [r.branch.name, r]));
+  const rows = EXPECTED_BRANCHES.map((name, i) => ({ name, record: byBranch.get(name), i }));
+  const extras = [...byBranch.keys()].filter(n => !EXPECTED_BRANCHES.includes(n));
+  extras.forEach(n => rows.push({ name: n, record: byBranch.get(n), i: rows.length }));
+  
+  $("branchTable").innerHTML = rows.map(x => {
+    if(!x.record) return `<tr class="border-b border-slate-100">
+      <td class="px-5 py-3 text-slate-400">${x.i + 1}</td>
+      <td class="px-5 py-3 font-bold text-slate-700">${x.name}</td>
+      <td class="px-5 py-3 text-right text-slate-300">—</td>
+      <td class="px-5 py-3 text-right text-slate-300">—</td>
+      <td class="px-5 py-3 text-right text-slate-300">—</td>
+      <td class="px-5 py-3 text-center"><span class="badge badge-empty">ไม่พบข้อมูล</span></td>
+    </tr>`;
+    
+    const p = completion(x.record);
+    const st = p >= 100 ? "สมบูรณ์" : p >= 98 ? "ดีเยี่ยม" : p >= 95 ? "ปานกลาง" : "ต้องปรับปรุง";
+    const bc = p >= 98 ? "badge-ok" : p >= 95 ? "badge-warn" : "badge-bad";
+    
+    return `<tr class="border-b border-slate-100 hover:bg-slate-50">
+      <td class="px-5 py-3 text-slate-400">${x.i + 1}</td>
+      <td class="px-5 py-3 font-bold">${x.name}${x.record.branch.code ? ` <span class="text-[10px] text-slate-400">(${x.record.branch.code})</span>` : ""}</td>
+      <td class="px-5 py-3 text-right mono">${fmt(x.record.metrics.customer_count)}</td>
+      <td class="px-5 py-3 text-right mono">${fmt(x.record.metrics.imported_customer_count)}</td>
+      <td class="px-5 py-3 text-right mono font-bold">${p.toFixed(2)}%</td>
+      <td class="px-5 py-3 text-center"><span class="badge ${bc}">${st}</span></td>
+    </tr>`;
+  }).join("");
+}
+
+function renderPeriods(){
+  $("periodGrid").innerHTML = "";
+  for(let y = 2565; y <= 2569; y++){
+    const card = document.createElement("div");
+    card.className = "border border-slate-200 rounded-xl p-3";
+    const qs = [1, 2, 3, 4].map(q => {
+      const n = allRecords.filter(r => r.fiscal_year === y && r.quarter === q).length;
+      const cls = n ? "badge-ok" : "badge-empty";
+      return `<div class="flex items-center justify-between py-1"><span class="text-xs font-semibold">Q${q}</span><span class="badge ${cls}">${n ? `${n} รายการ` : "ไม่มีข้อมูล"}</span></div>`;
+    }).join("");
+    card.innerHTML = `<div class="font-extrabold text-slate-800 mb-1">ปี ${y}</div>${qs}`;
+    $("periodGrid").appendChild(card);
+  }
+}
+function render(){
+  const arr = selectedRecords();
+  renderKPI(arr);
+  renderBar(arr);
+  renderYear();
+  renderTable(arr);
+  renderPeriods();
+}
+
+async function load(){
+  document.body.classList.add("loading");
+  const result = await fetchMongo();
+  records = result.selected;
+  allRecords = result.all;
+  render();
+  document.body.classList.remove("loading");
+}
+
+$("year").addEventListener("change", load);
+$("quarter").addEventListener("change", load);
+$("sync").addEventListener("click", load);
+
+window.addEventListener("load", () => {
+  render();
+  load();
+});
+</script>
+</body>
+</html>
