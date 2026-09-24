@@ -152,7 +152,6 @@ const $ = id => document.getElementById(id);
 const fmt = n => Number(n||0).toLocaleString("th-TH");
 const pct = n => `${Number(n||0).toFixed(2)}%`;
 
-// ฟังก์ชันทำความสะอาดชื่อสาขาเพื่อเพิ่มความแม่นยำในการแมปข้อมูล
 function cleanBranchName(str) {
   if (!str) return "";
   return String(str)
@@ -268,7 +267,7 @@ function renderKPI(arr){
   $("kpiHydrant").textContent = fmt(a.hydrant);
 }
 
-// ปรับแต่งกราฟแท่ง ให้ข้อความ % อยู่ตรงกลางแท่งกราฟ
+// ปรับตั้งค่ากราฟแท่งให้แสดงเปอร์เซ็นต์อยู่ตรงกลางแท่ง และตัวอักษรสีดำ
 function renderBar(arr){
   const sorted = [...arr].sort((a, b) => completion(b) - completion(a));
   if(!barChart){
@@ -282,18 +281,18 @@ function renderBar(arr){
           borderRadius: 4, 
           distributed: true, 
           dataLabels: { 
-            position: "center" // กำหนดให้ตัวเลขอัพเดตอยู่ตรงกลางแท่งกราฟ
+            position: "center" // ตำแหน่งตรงกลางแท่งกราฟ
           } 
         } 
       },
       dataLabels: { 
         enabled: true, 
         formatter: v => v.toFixed(1) + "%", 
-        offsetY: 0, // วางตำแหน่งแนวตั้งไว้ตรงกลาง
+        offsetY: 0, 
         style: { 
           fontSize: "11px", 
-          fontWeight: "bold",
-          colors: ["#ffffff"] // สีขาวมองเห็นชัดบนแท่งกราฟ
+          fontWeight: "800",
+          colors: ["#000000"] // กำหนดตัวอักษรเป็นสีดำ
         } 
       },
       xaxis: { 
@@ -336,7 +335,6 @@ function renderYear(){
 }
 
 function renderTable(arr){
-  // แมปข้อมูลเข้าด้วย cleanName เพื่อแก้ปัญหาค้นหาไม่เจอของทุกสาขา
   const byCleanName = new Map();
   const byCode = new Map();
 
@@ -352,13 +350,11 @@ function renderTable(arr){
 
   const rows = EXPECTED_BRANCHES.map((name, i) => {
     const clean = cleanBranchName(name);
-    // ค้นหาทั้งจาก cleanName และ name ดั้งเดิม
     const record = byCleanName.get(clean) || byCleanName.get(name) || null;
     if (record) matchedRecords.add(record);
     return { name, record, i };
   });
 
-  // แสดงสาขาอื่นๆ ที่อาจไม่อยู่ใน 20 สาขาหลัก
   arr.forEach(r => {
     if (!matchedRecords.has(r)) {
       rows.push({
