@@ -1,0 +1,14 @@
+{
+  "name": "gis-pwa5-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo GIS PWA5"
+  },
+  "dependencies": {
+    "mongodb": "^6.20.0"
+  },
+  "devDependencies": {
+    "vercel": "^48.12.1"
+  }
+}
