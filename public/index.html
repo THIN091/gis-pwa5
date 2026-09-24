@@ -267,7 +267,7 @@ function renderKPI(arr){
   $("kpiHydrant").textContent = fmt(a.hydrant);
 }
 
-// ปรับตั้งค่ากราฟแท่งให้แสดงเปอร์เซ็นต์อยู่ตรงกลางแท่ง และตัวอักษรสีดำ
+// ปรับแต่งกราฟแท่งให้แสดงเปอร์เซ็นต์อยู่ตรงกลางแท่ง ตัวอักษรสีดำ และจัดวางแนวตั้ง/ทะแยงตามแท่งกราฟ
 function renderBar(arr){
   const sorted = [...arr].sort((a, b) => completion(b) - completion(a));
   if(!barChart){
@@ -281,7 +281,8 @@ function renderBar(arr){
           borderRadius: 4, 
           distributed: true, 
           dataLabels: { 
-            position: "center" // ตำแหน่งตรงกลางแท่งกราฟ
+            position: "center", // ตำแหน่งตรงกลางแท่งกราฟ
+            orientation: "vertical" // จัดวางแนวตั้งขนานกับแท่งกราฟ
           } 
         } 
       },
@@ -292,7 +293,7 @@ function renderBar(arr){
         style: { 
           fontSize: "11px", 
           fontWeight: "800",
-          colors: ["#000000"] // กำหนดตัวอักษรเป็นสีดำ
+          colors: ["#000000"] // ตัวอักษรสีดำ
         } 
       },
       xaxis: { 
