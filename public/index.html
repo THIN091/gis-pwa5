@@ -20,7 +20,6 @@ select,button,input{font-family:inherit}.filter{border:1px solid #d7e1ea;border-
 .kpi{min-height:142px}.status-dot{width:9px;height:9px;border-radius:999px;display:inline-block}.scroll{max-height:430px;overflow:auto}
 .badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800}
 .badge-ok{background:#e7f7ef;color:#11733f;border:1px solid #c8ecd9}.badge-warn{background:#fff4e7;color:#a8560d;border:1px solid #f6d5b2}.badge-bad{background:#ffebe8;color:#a92f24;border:1px solid #f3c5bf}.badge-empty{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0}
-.progress{height:7px;background:#e8eef3;border-radius:99px;overflow:hidden}.progress>span{display:block;height:100%;border-radius:99px}
 .toast{position:fixed;right:20px;bottom:20px;z-index:100;padding:13px 17px;border-radius:12px;color:#fff;background:#126e46;box-shadow:0 10px 30px rgba(0,0,0,.18);display:none}
 .toast.show{display:block}.loading{opacity:.55;pointer-events:none}
 </style>
@@ -73,7 +72,8 @@ select,button,input{font-family:inherit}.filter{border:1px solid #d7e1ea;border-
     </div>
   </div>
 
-  <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+  <!-- KPI Section (ปรับเหลือ 3 ช่องหลัก) -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-5">
     <div class="card kpi p-5">
       <div class="text-xs font-bold text-slate-500">ความสำเร็จรวม</div>
       <div id="kpiCompletion" class="text-4xl font-extrabold text-sky-700 mt-2 mono">0.00%</div>
@@ -92,18 +92,13 @@ select,button,input{font-family:inherit}.filter{border:1px solid #d7e1ea;border-
         <div><div id="kpiHydrant" class="font-extrabold mono">0</div><div class="text-[10px] text-slate-500">หัวดับเพลิง</div></div>
       </div>
     </div>
-    <div class="card kpi p-5">
-      <div class="text-xs font-bold text-slate-500">ความครบถ้วนของข้อมูล</div>
-      <div id="kpiCoverage" class="text-3xl font-extrabold text-indigo-700 mt-2 mono">0 / 20</div>
-      <div class="progress mt-3"><span id="coverageBar" style="width:0%;background:#6366f1"></span></div>
-      <div id="kpiCoverageText" class="text-xs text-slate-500 mt-2">ยังไม่พบข้อมูล</div>
-    </div>
   </section>
 
   <section class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+    <!-- กราฟแท่ง (Vertical Bar Chart) แสดงความสำเร็จแยกตามสาขา -->
     <div class="card p-5 xl:col-span-3">
       <div class="flex justify-between items-start gap-3">
-        <div><h2 class="font-extrabold text-lg">ความสำเร็จแยกตามสาขา</h2><p class="small mt-1">เรียงจากความสำเร็จน้อยไปมาก</p></div>
+        <div><h2 class="font-extrabold text-lg">ความสำเร็จแยกตามสาขา</h2><p class="small mt-1">แสดงสัดส่วนความสำเร็จรายสาขา (%)</p></div>
         <div id="chartLegend" class="text-[11px] text-slate-500">—</div>
       </div>
       <div id="barChart" class="mt-2"></div>
@@ -114,9 +109,10 @@ select,button,input{font-family:inherit}.filter{border:1px solid #d7e1ea;border-
     </div>
   </section>
 
+  <!-- ตารางตรวจสอบข้อมูลรายสาขา -->
   <section class="card overflow-hidden">
     <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div><h2 class="font-extrabold text-lg">ตรวจสอบข้อมูลรายสาขา</h2><p class="small mt-1">แยกชัดเจนระหว่าง “ไม่มีข้อมูล” กับ “ข้อมูล 0”</p></div>
+      <div><h2 class="font-extrabold text-lg">ตรวจสอบข้อมูลรายสาขา</h2><p class="small mt-1">แยกชัดเจนระหว่าง “มีข้อมูล” กับ “ไม่พบข้อมูล”</p></div>
       <div class="flex gap-2 text-[11px] font-bold">
         <span class="badge badge-ok">มีข้อมูล</span><span class="badge badge-empty">ไม่พบข้อมูล</span>
       </div>
@@ -134,24 +130,12 @@ select,button,input{font-family:inherit}.filter{border:1px solid #d7e1ea;border-
       </table>
     </div>
   </section>
-
-  <section class="card p-5">
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-      <div>
-        <h2 class="font-extrabold text-lg">ตรวจสอบช่วงข้อมูล 2565–2569</h2>
-        <p class="small mt-1">ใช้ตรวจว่าแต่ละปี/ไตรมาสมีเอกสารในฐานข้อมูลจริงหรือไม่</p>
-      </div>
-      <span class="text-xs text-slate-500">ไม่สร้างข้อมูลปลอมเมื่อ MongoDB ไม่มีรายการ</span>
-    </div>
-    <div id="periodGrid" class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4"></div>
-  </section>
 </main>
 
 <div id="toast" class="toast"></div>
 
 <script>
 const CONFIG = {
-  // ชี้ไปที่ Vercel Serverless Function โดยใช้ Relative Path
   apiUrl: "/api/dashboard",
   timeoutMs: 15000
 };
@@ -173,12 +157,16 @@ const pct = n => `${Number(n||0).toFixed(2)}%`;
 
 function normalizeRecord(x){
   const m = x.metrics || {};
+  // เพิ่มความยืดหยุ่นในการดึงชื่อสาขาและรหัสสาขาจากโครงสร้าง JSON ต่างๆ
+  const branchName = x.branch?.name ?? x.branch_name ?? x.name ?? x.branchName ?? "ไม่ระบุสาขา";
+  const branchCode = x.branch?.code ?? x.branch_code ?? x.code ?? x.branchCode ?? "";
+
   return {
     fiscal_year: Number(x.fiscal_year ?? x.year ?? 0),
     quarter: Number(x.quarter ?? 0),
     branch: {
-      code: x.branch?.code ?? x.branch_code ?? "",
-      name: x.branch?.name ?? x.branch_name ?? x.name ?? "ไม่ระบุสาขา"
+      code: branchCode,
+      name: branchName
     },
     metrics: {
       customer_count: Number(m.customer_count ?? x.customer_count ?? 0),
@@ -223,10 +211,7 @@ async function fetchJson(url){
 async function fetchMongo(){
   const year = $("year").value, quarter = $("quarter").value;
   try {
-    // 1) ข้อมูลช่วงที่เลือก: ใช้กับ KPI/ตาราง/กราฟสาขา
     const selected = await fetchJson(`${CONFIG.apiUrl}?year=${encodeURIComponent(year)}&quarter=${encodeURIComponent(quarter)}`);
-
-    // 2) ข้อมูลย้อนหลังทั้งหมด: ใช้กับกราฟปีและตรวจ Q1-Q4 ของ 2565-2569
     const history = await fetchJson(`/api/history`);
     const arr = Array.isArray(selected.data) ? selected.data : [];
     const all = Array.isArray(history.data) ? history.data : [];
@@ -236,7 +221,6 @@ async function fetchMongo(){
     $("lastSync").textContent = "ดึงข้อมูลล่าสุด: " + new Date().toLocaleString("th-TH");
     $("notice").style.display = "none";
 
-    // ใช้ข้อมูลย้อนหลังสำหรับกราฟ/period และข้อมูลช่วงที่เลือกสำหรับตาราง
     return { selected: arr.map(normalizeRecord), all: all.map(normalizeRecord) };
   } catch(err) {
     setConnection(false, "เชื่อมต่อ API ไม่สำเร็จ");
@@ -248,6 +232,7 @@ async function fetchMongo(){
     return { selected: [], all: [] };
   }
 }
+
 function selectedRecords(){
   const y = Number($("year").value), q = Number($("quarter").value);
   return records.filter(r => r.fiscal_year === y && r.quarter === q);
@@ -276,23 +261,30 @@ function renderKPI(arr){
   $("kpiPipe").textContent = fmt(a.pipe); 
   $("kpiValve").textContent = fmt(a.valve); 
   $("kpiHydrant").textContent = fmt(a.hydrant);
-  
-  const coverage = Math.min(20, unique.filter(x => EXPECTED_BRANCHES.includes(x)).length);
-  $("kpiCoverage").textContent = `${coverage} / 20`; 
-  $("coverageBar").style.width = (coverage / 20 * 100) + "%";
-  $("kpiCoverageText").textContent = coverage === 20 ? "ครบ 20 สาขาอ้างอิง" : `พบข้อมูล ${coverage} จาก 20 สาขาอ้างอิง`;
 }
 
+// ปรับปรุงกราฟให้เป็น กราฟแท่งตั้ง (Vertical Bar Chart)
 function renderBar(arr){
-  const sorted = [...arr].sort((a, b) => completion(a) - completion(b));
+  const sorted = [...arr].sort((a, b) => completion(b) - completion(a)); // เรียงจากมากไปน้อย
   if(!barChart){
     barChart = new ApexCharts($("barChart"), {
       chart: { type: "bar", height: 360, toolbar: { show: false }, fontFamily: "Noto Sans Thai" },
-      series: [{ name: "ความสำเร็จ", data: [] }],
-      plotOptions: { bar: { horizontal: true, borderRadius: 5, barHeight: "58%", distributed: true, dataLabels: { position: "right" } } },
-      dataLabels: { enabled: true, formatter: v => v.toFixed(2) + "%", offsetX: 5, style: { fontSize: "11px", colors: ["#334155"] } },
-      xaxis: { min: 0, max: 100, tickAmount: 5, labels: { formatter: v => v + "%" } },
-      yaxis: { labels: { style: { fontSize: "12px", fontWeight: 600 } } },
+      series: [{ name: "ความสำเร็จ (%)", data: [] }],
+      plotOptions: { 
+        bar: { 
+          horizontal: false, // กำหนดเป็นกราฟแท่งตั้ง
+          columnWidth: "45%", 
+          borderRadius: 4, 
+          distributed: true, 
+          dataLabels: { position: "top" } 
+        } 
+      },
+      dataLabels: { enabled: true, formatter: v => v.toFixed(1) + "%", offsetY: -20, style: { fontSize: "10px", colors: ["#334155"] } },
+      xaxis: { 
+        categories: [],
+        labels: { rotate: -45, style: { fontSize: "11px" } }
+      },
+      yaxis: { min: 0, max: 100, tickAmount: 5, labels: { formatter: v => v + "%" } },
       grid: { borderColor: "#e8eef3" },
       legend: { show: false }
     }); 
@@ -312,7 +304,7 @@ function renderYear(){
   }
   if(!yearChart){
     yearChart = new ApexCharts($("yearChart"), {
-      chart: { type: "line", height: 300, toolbar: { show: false }, fontFamily: "Noto Sans Thai" },
+      chart: { type: "line", height: 360, toolbar: { show: false }, fontFamily: "Noto Sans Thai" },
       series: [{ name: "ความสำเร็จ", data: [] }],
       stroke: { curve: "smooth", width: 3 },
       markers: { size: 5 },
@@ -328,10 +320,23 @@ function renderYear(){
 }
 
 function renderTable(arr){
-  const byBranch = new Map(arr.map(r => [r.branch.name, r]));
-  const rows = EXPECTED_BRANCHES.map((name, i) => ({ name, record: byBranch.get(name), i }));
-  const extras = [...byBranch.keys()].filter(n => !EXPECTED_BRANCHES.includes(n));
-  extras.forEach(n => rows.push({ name: n, record: byBranch.get(n), i: rows.length }));
+  // สร้าง Map แมปชื่อสาขาโดยแปลงตัวอักษรให้อยู่ในรูปแบบเดียวกัน (Trim)
+  const byBranch = new Map();
+  arr.forEach(r => {
+    if (r.branch && r.branch.name) {
+      byBranch.set(r.branch.name.trim(), r);
+    }
+  });
+
+  const rows = EXPECTED_BRANCHES.map((name, i) => ({ name, record: byBranch.get(name.trim()), i }));
+  
+  // จัดการสาขาที่อาจมีเพิ่มเติมนอกเหนือจาก 20 สาขาหลัก
+  const matchedNames = new Set(EXPECTED_BRANCHES.map(n => n.trim()));
+  [...byBranch.keys()].forEach(n => {
+    if (!matchedNames.has(n)) {
+      rows.push({ name: n, record: byBranch.get(n), i: rows.length });
+    }
+  });
   
   $("branchTable").innerHTML = rows.map(x => {
     if(!x.record) return `<tr class="border-b border-slate-100">
@@ -358,27 +363,12 @@ function renderTable(arr){
   }).join("");
 }
 
-function renderPeriods(){
-  $("periodGrid").innerHTML = "";
-  for(let y = 2565; y <= 2569; y++){
-    const card = document.createElement("div");
-    card.className = "border border-slate-200 rounded-xl p-3";
-    const qs = [1, 2, 3, 4].map(q => {
-      const n = allRecords.filter(r => r.fiscal_year === y && r.quarter === q).length;
-      const cls = n ? "badge-ok" : "badge-empty";
-      return `<div class="flex items-center justify-between py-1"><span class="text-xs font-semibold">Q${q}</span><span class="badge ${cls}">${n ? `${n} รายการ` : "ไม่มีข้อมูล"}</span></div>`;
-    }).join("");
-    card.innerHTML = `<div class="font-extrabold text-slate-800 mb-1">ปี ${y}</div>${qs}`;
-    $("periodGrid").appendChild(card);
-  }
-}
 function render(){
   const arr = selectedRecords();
   renderKPI(arr);
   renderBar(arr);
   renderYear();
   renderTable(arr);
-  renderPeriods();
 }
 
 async function load(){
