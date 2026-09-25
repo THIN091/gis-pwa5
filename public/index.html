@@ -49,7 +49,7 @@
                     <option value="2567">2567</option>
                     <option value="2568">2568</option>
                     <option value="2569" selected>2569</option>
-                    <option value="2570">2570</option>
+                    
                 </select>
                 
                 <label class="text-sm font-bold text-slate-600 ml-2">ไตรมาส</label>
@@ -189,9 +189,10 @@
         <!-- List 2: ด้านท่อแตกรั่ว -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
             <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
-                <h2 class="font-extrabold text-[17px] text-slate-800">สาขาที่เร่งดำเนินการ (ด้านท่อแตกรั่ว)</h2>
+                <h2 class="font-extrabold text-[17px] text-slate-800">สาขาที่เร่งดำเนินการ (ด้าน Smart 1662)</h2>
                 <div class="text-xl">🏆</div>
             </div>
+            <div class="text-xs text-slate-500 mb-3">เรียงจากค่า Smart 1662 ต่ำไปสูง โดยใช้ข้อมูลจริงจาก MongoDB</div>
             <div id="rankingLeak" class="space-y-4"></div>
         </div>
     </div>
@@ -233,53 +234,37 @@
     async function fetchMongo(){
         const year = document.getElementById("yearSelect").value;
         const quarter = document.getElementById("quarterSelect").value;
-        
+
         try {
-            // ดึงข้อมูลจริงจาก API Backend
-            const res = await fetch(`${CONFIG.apiUrl}?year=${encodeURIComponent(year)}&quarter=${encodeURIComponent(quarter)}`);
-            if (!res.ok) throw new Error("ไม่สามารถติดต่อเซิร์ฟเวอร์ได้");
-            const json = await res.json();
-            const arr = Array.isArray(json.data) ? json.data : json;
+            const res = await fetch(
+                `${CONFIG.apiUrl}?year=${encodeURIComponent(year)}&quarter=${encodeURIComponent(quarter)}`,
+                { cache: "no-store" }
+            );
+
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok || json.ok === false) {
+                throw new Error(json.error || "ไม่สามารถติดต่อ API ได้");
+            }
+
+            const arr = Array.isArray(json.data) ? json.data : [];
 
             setConnection(true, "เชื่อมต่อ API สำเร็จ");
             document.getElementById("modeText").textContent = "ข้อมูลจริงจาก MongoDB Atlas";
-            document.getElementById("lastSync").textContent = "ดึงข้อมูลล่าสุด: " + new Date().toLocaleString("th-TH");
+            document.getElementById("lastSync").textContent =
+                "ดึงข้อมูลล่าสุด: " + new Date().toLocaleString("th-TH");
             document.getElementById("notice").style.display = "none";
-            
-            return arr; 
-        } catch(err) {
-            // กรณีไม่มี Backend/เชื่อมต่อ API ไม่ได้ จะใช้ Mock Data สำรอง
-            setConnection(true, "โหมดแสดงข้อมูลจำลอง (Mock Data)");
-            document.getElementById("modeText").textContent = "ข้อมูลจำลองระบบ";
-            document.getElementById("lastSync").textContent = "ดึงข้อมูลล่าสุด: " + new Date().toLocaleString("th-TH");
-            document.getElementById("notice").style.display = "none";
-
-            const realBranches = ['นราธิวาส', 'นาทวี', 'หาดใหญ่', 'สงขลา', 'สะเดา', 'พังงา', 'สุไหงโก-ลก', 'ยะหา', 'ระโนด', 'พัทลุง', 'ห้วยยอด', 'ละงู', 'สายบุรี', 'พังลา', 'เขาชัยสน', 'ตรัง', 'ย่านตาขาว', 'กันตัง', 'สตูล', 'เบตง'];
-            
-            const TOTAL_CUSTOMERS = (year === "2569" && quarter === "3") ? 383367 : 350000;
-            const basePerBranch = Math.floor(TOTAL_CUSTOMERS / realBranches.length);
-            let remainder = TOTAL_CUSTOMERS - (basePerBranch * realBranches.length);
-
-            const arr = realBranches.map((name, idx) => {
-                const total = basePerBranch + (idx === 0 ? remainder : 0);
-                const compPct = 85 + (Math.random() * 12); 
-                const smartPct = 90 + (Math.random() * 9);
-                return {
-                    branch: { name: name },
-                    metrics: { 
-                        customer_count: total, 
-                        imported_customer_count: Math.floor(total * (compPct/100)),
-                        pipe_length_m: 500000 + Math.floor(Math.random()*100000), 
-                        valve_count: 2000 + Math.floor(Math.random()*500), 
-                        fire_hydrant_count: 500 + Math.floor(Math.random()*100), 
-                        leak_point_count: Math.floor(Math.random()*200),
-                        smart_1662_percentage: smartPct,
-                        completion_percentage: compPct
-                    }
-                };
-            });
 
             return arr;
+        } catch(err) {
+            setConnection(false, "เชื่อมต่อ API/MongoDB ไม่สำเร็จ");
+            document.getElementById("modeText").textContent = "ไม่ใช้ข้อมูลจำลอง";
+            document.getElementById("lastSync").textContent =
+                "เกิดข้อผิดพลาด: " + err.message;
+            document.getElementById("notice").style.display = "block";
+            document.getElementById("noticeText").textContent =
+                "ไม่สามารถดึงข้อมูลจริงจาก MongoDB Atlas ได้: " + err.message;
+
+            return [];
         }
     }
 
@@ -297,7 +282,12 @@
     }
 
     function renderUI(arr) {
-        if (!arr || arr.length === 0) return;
+        if (!arr || arr.length === 0) {
+            document.getElementById("notice").style.display = "block";
+            document.getElementById("noticeText").textContent =
+                "ไม่พบข้อมูลจริงใน MongoDB สำหรับปีงบประมาณ/ไตรมาสที่เลือก";
+            return;
+        }
 
         // 1. Update KPIs
         const agg = aggregate(arr);
@@ -344,11 +334,14 @@
                 p = total ? (imported / total * 100) : 0;
             }
 
-            // คำนวณ % Smart 1662 (ป้องกันกรณีที่ API ส่งค่ามาเป็น null/undefined/ไม่มี field นี้)
-            let s1662 = m.smart_1662_percentage;
-            if (s1662 === undefined || s1662 === null || isNaN(s1662)) {
-                s1662 = p; // Fallback: ใช้ค่า % ผลงานแทนชั่วคราวหากข้อมูล Smart 1662 ไม่มา
-            }
+            // Smart 1662 ต้องมาจาก MongoDB เท่านั้น
+            const s1662Raw = m.smart_1662_percentage;
+            const s1662 = (
+                s1662Raw !== undefined &&
+                s1662Raw !== null &&
+                s1662Raw !== "" &&
+                Number.isFinite(Number(s1662Raw))
+            ) ? Number(s1662Raw) : null;
 
             return { 
                 name: branchName, 
@@ -356,7 +349,7 @@
                 remain: Number(p) > 100 ? 0 : 100 - Number(p),
                 pending: pending,
                 leak: m.leak_point_count || 0,
-                smart1662: Number(s1662)
+                smart1662: s1662
             };
         }).sort((a, b) => a.pct - b.pct);
 
@@ -423,18 +416,26 @@
             ${index < 2 ? '<hr class="border-slate-100">' : ''}
         `).join('');
 
-        // สาขาที่เร่งดำเนินการ (ด้านท่อแตกรั่ว)
-        const sortedSmart1662 = [...sorted].sort((a, b) => a.smart1662 - b.smart1662).slice(0, 3);
-        document.getElementById("rankingLeak").innerHTML = sortedSmart1662.map((item, index) => `
-            <div class="flex justify-between items-center text-[15px] font-bold text-slate-700 py-1">
-                <div class="flex items-center gap-3">
-                    <span class="text-slate-400 w-4 text-right text-sm">${index + 1}</span>
-                    <span class="${index === 0 ? 'text-red-600' : 'text-slate-700'}">กปภ.สาขา${item.name} (${item.smart1662.toFixed(2)}%)</span>
+        // สาขาที่เร่งดำเนินการ (ด้าน Smart 1662)
+        const sortedSmart1662 = [...sorted]
+            .filter(item => item.smart1662 !== null)
+            .sort((a, b) => a.smart1662 - b.smart1662)
+            .slice(0, 3);
+
+        document.getElementById("rankingLeak").innerHTML = sortedSmart1662.length
+            ? sortedSmart1662.map((item, index) => `
+                <div class="flex justify-between items-center text-[15px] font-bold text-slate-700 py-1">
+                    <div class="flex items-center gap-3">
+                        <span class="text-slate-400 w-4 text-right text-sm">${index + 1}</span>
+                        <span class="${index === 0 ? 'text-red-600' : 'text-slate-700'}">
+                            กปภ.สาขา${item.name} (${item.smart1662.toFixed(2)}%)
+                        </span>
+                    </div>
+                    <span class="text-blue-600 font-bold text-sm">Smart 1662</span>
                 </div>
-                <span class="text-blue-600 font-bold text-sm">Smart 1662</span>
-            </div>
-            ${index < 2 ? '<hr class="border-slate-100">' : ''}
-        `).join('');
+                ${index < 2 ? '<hr class="border-slate-100">' : ''}
+            `).join('')
+            : '<div class="text-sm text-slate-500 py-2">ยังไม่มีข้อมูล Smart 1662 ใน MongoDB สำหรับช่วงเวลานี้</div>';
     }
 
     async function loadData() {
