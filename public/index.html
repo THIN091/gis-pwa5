@@ -285,12 +285,13 @@
 
     function aggregate(arr){
         return arr.reduce((a, r) => {
-            a.customers += r.metrics.customer_count || 0;
-            a.imported += r.metrics.imported_customer_count || 0;
-            a.pipe += r.metrics.pipe_length_m || 0;
-            a.valve += r.metrics.valve_count || 0;
-            a.hydrant += r.metrics.fire_hydrant_count || 0;
-            a.leak += r.metrics.leak_point_count || 0;
+            const m = r.metrics || {};
+            a.customers += m.customer_count || 0;
+            a.imported += m.imported_customer_count || 0;
+            a.pipe += m.pipe_length_m || 0;
+            a.valve += m.valve_count || 0;
+            a.hydrant += m.fire_hydrant_count || 0;
+            a.leak += m.leak_point_count || 0;
             return a;
         }, { customers: 0, imported: 0, pipe: 0, valve: 0, hydrant: 0, leak: 0 });
     }
@@ -328,25 +329,38 @@
             donutChartInst.updateSeries([completionPct, 100 - completionPct]);
         }
 
-        // 3. Update Bar Chart
+        // 3. Update Data Mapping & Fallback Protection
         const sorted = [...arr].map(r => {
-            const total = r.metrics.customer_count || 0;
-            const imported = r.metrics.imported_customer_count || 0;
-            const pending = Math.max(0, total - imported);
-            const p = r.metrics.completion_percentage !== undefined 
-                ? r.metrics.completion_percentage 
-                : (total ? (imported / total * 100) : 0);
+            const m = r.metrics || {};
+            const branchName = (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา');
             
+            const total = m.customer_count || 0;
+            const imported = m.imported_customer_count || 0;
+            const pending = Math.max(0, total - imported);
+            
+            // คำนวณ % ความสำเร็จ
+            let p = m.completion_percentage;
+            if (p === undefined || p === null) {
+                p = total ? (imported / total * 100) : 0;
+            }
+
+            // คำนวณ % Smart 1662 (ป้องกันกรณีที่ API ส่งค่ามาเป็น null/undefined/ไม่มี field นี้)
+            let s1662 = m.smart_1662_percentage;
+            if (s1662 === undefined || s1662 === null || isNaN(s1662)) {
+                s1662 = p; // Fallback: ใช้ค่า % ผลงานแทนชั่วคราวหากข้อมูล Smart 1662 ไม่มา
+            }
+
             return { 
-                name: r.branch.name, 
-                pct: p > 100 ? 100 : p, 
-                remain: p > 100 ? 0 : 100 - p,
+                name: branchName, 
+                pct: Number(p) > 100 ? 100 : Number(p), 
+                remain: Number(p) > 100 ? 0 : 100 - Number(p),
                 pending: pending,
-                leak: r.metrics.leak_point_count || 0,
-                smart1662: r.metrics.smart_1662_percentage || 0
+                leak: m.leak_point_count || 0,
+                smart1662: Number(s1662)
             };
         }).sort((a, b) => a.pct - b.pct);
 
+        // Render Bar Chart
         if (!barChartInst) {
             barChartInst = new ApexCharts(document.querySelector("#barChart"), {
                 series: [{ name: 'ผลงาน', data: sorted.map(s => s.pct) }, { name: 'คงเหลือ', data: sorted.map(s => s.remain) }],
@@ -394,6 +408,7 @@
         }
 
         // 4. Update Bottom Rankings
+        // สาขาที่เร่งดำเนินการ (ด้านผู้ใช้น้ำ)
         const top3Water = sorted.slice(0, 3);
         document.getElementById("rankingWater").innerHTML = top3Water.map((item, index) => `
             <div class="flex justify-between items-center text-[15px] font-bold py-1">
@@ -408,7 +423,7 @@
             ${index < 2 ? '<hr class="border-slate-100">' : ''}
         `).join('');
 
-        // สรุปสาขาเร่งดำเนินการ (ด้านท่อแตกรั่ว) แสดง กปภ.สาขา + ชื่อสาขา + (%)
+        // สาขาที่เร่งดำเนินการ (ด้านท่อแตกรั่ว)
         const sortedSmart1662 = [...sorted].sort((a, b) => a.smart1662 - b.smart1662).slice(0, 3);
         document.getElementById("rankingLeak").innerHTML = sortedSmart1662.map((item, index) => `
             <div class="flex justify-between items-center text-[15px] font-bold text-slate-700 py-1">
