@@ -355,7 +355,10 @@
         // Render Bar Chart
         if (!barChartInst) {
             barChartInst = new ApexCharts(document.querySelector("#barChart"), {
-                series: [{ name: 'ผลงาน', data: sorted.map(s => s.pct) }, { name: 'คงเหลือ', data: sorted.map(s => s.remain) }],
+                series: [
+                    { name: 'ผลงาน', data: sorted.map(s => s.pct) }, 
+                    { name: 'คงเหลือ', data: sorted.map(s => s.remain) }
+                ],
                 chart: { type: 'bar', height: 360, stacked: true, toolbar: { show: false }, fontFamily: 'Noto Sans Thai' },
                 colors: ['#439a58', '#e76c35'],
                 plotOptions: { bar: { horizontal: false, columnWidth: '60%', borderRadius: 2 } },
@@ -379,7 +382,10 @@
                 tooltip: {
                     y: {
                         formatter: function (val, { seriesIndex, w }) {
-                            const seriesName = w.globals.seriesNames[seriesIndex];
+                            const rawName = w.globals.seriesNames[seriesIndex];
+                            const seriesName = (rawName && !rawName.startsWith('series')) 
+                                ? rawName 
+                                : (seriesIndex === 0 ? 'ผลงาน' : 'คงเหลือ');
                             return `${seriesName}: ${Number(val).toFixed(2)}%`;
                         }
                     }
@@ -387,13 +393,20 @@
             });
             barChartInst.render();
         } else {
-            barChartInst.updateSeries([{ data: sorted.map(s => s.pct) }, { data: sorted.map(s => s.remain) }]);
+            // อัปเดตข้อมูลและส่งชื่อ Series กำกับเสมอ
+            barChartInst.updateSeries([
+                { name: 'ผลงาน', data: sorted.map(s => s.pct) }, 
+                { name: 'คงเหลือ', data: sorted.map(s => s.remain) }
+            ]);
             barChartInst.updateOptions({ 
                 xaxis: { categories: sorted.map(s => s.name) },
                 tooltip: {
                     y: {
                         formatter: function (val, { seriesIndex, w }) {
-                            const seriesName = w.globals.seriesNames[seriesIndex];
+                            const rawName = w.globals.seriesNames[seriesIndex];
+                            const seriesName = (rawName && !rawName.startsWith('series')) 
+                                ? rawName 
+                                : (seriesIndex === 0 ? 'ผลงาน' : 'คงเหลือ');
                             return `${seriesName}: ${Number(val).toFixed(2)}%`;
                         }
                     }
