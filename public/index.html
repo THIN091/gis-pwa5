@@ -378,8 +378,9 @@
                 grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
                 tooltip: {
                     y: {
-                        formatter: function (val) {
-                            return Number(val).toFixed(2) + "%";
+                        formatter: function (val, { seriesIndex, w }) {
+                            const seriesName = w.globals.seriesNames[seriesIndex];
+                            return `${seriesName}: ${Number(val).toFixed(2)}%`;
                         }
                     }
                 }
@@ -391,8 +392,9 @@
                 xaxis: { categories: sorted.map(s => s.name) },
                 tooltip: {
                     y: {
-                        formatter: function (val) {
-                            return Number(val).toFixed(2) + "%";
+                        formatter: function (val, { seriesIndex, w }) {
+                            const seriesName = w.globals.seriesNames[seriesIndex];
+                            return `${seriesName}: ${Number(val).toFixed(2)}%`;
                         }
                     }
                 }
