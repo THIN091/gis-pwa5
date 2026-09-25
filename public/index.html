@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ระบบติดตามผลการนำเข้าข้อมูล GIS | กปภ.ข.5</title>
+<title>ระบบรายงานผลการนำเข้าข้อมูล GIS กปภ.ข.5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -34,8 +34,8 @@
     <header class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">รายงานผลการนำเข้าข้อมูลระบบท่อประปาและผู้ใช้น้ำ (GIS)</h1>
-                <p id="headerSubtitle" class="text-lg font-medium text-slate-600 mt-1">ไตรมาสที่ 3/2569 – การประปาส่วนภูมิภาค เขต 5</p>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">รายงานผลการนำเข้าข้อมูล GIS งานแผนที่แนวท่อฯ การประปาส่วนภูมิภาค เขต 5</h1>
+                <p id="headerSubtitle" class="text-lg font-medium text-slate-600 mt-1">ไตรมาส 3 ปีงบประมาณ 2569</p>
             </div>
             
             <div class="flex flex-wrap items-center gap-2">
@@ -214,7 +214,7 @@
     function updateHeaderPeriod() {
         const yearSelect = document.getElementById("yearSelect").value;
         const quarterSelect = document.getElementById("quarterSelect").value;
-        document.getElementById("headerSubtitle").textContent = `ไตรมาสที่ ${quarterSelect}/${yearSelect} – การประปาส่วนภูมิภาค เขต 5`;
+        document.getElementById("headerSubtitle").textContent = `ไตรมาส ${quarterSelect} ปีงบประมาณ ${yearSelect}`;
     }
 
     document.getElementById("yearSelect").addEventListener("change", updateHeaderPeriod);
@@ -245,7 +245,7 @@
             
             return arr; 
         } catch(err) {
-            // กรณีไม่มี Backend/เชื่อมต่อ API ไม่ได้ จะใช้ Mock Data สำรองที่กำหนดให้ผลรวมเป็น 383,367 รายพอดี
+            // กรณีไม่มี Backend/เชื่อมต่อ API ไม่ได้ จะใช้ Mock Data สำรอง
             setConnection(true, "โหมดแสดงข้อมูลจำลอง (Mock Data)");
             document.getElementById("modeText").textContent = "ข้อมูลจำลองระบบ";
             document.getElementById("lastSync").textContent = "ดึงข้อมูลล่าสุด: " + new Date().toLocaleString("th-TH");
@@ -253,23 +253,25 @@
 
             const realBranches = ['นราธิวาส', 'นาทวี', 'หาดใหญ่', 'สงขลา', 'สะเดา', 'พังงา', 'สุไหงโก-ลก', 'ยะหา', 'ระโนด', 'พัทลุง', 'ห้วยยอด', 'ละงู', 'สายบุรี', 'พังลา', 'เขาชัยสน', 'ตรัง', 'ย่านตาขาว', 'กันตัง', 'สตูล', 'เบตง'];
             
-            // กำหนดปริมาณงานรวมที่ถูกต้อง = 383,367 ราย
             const TOTAL_CUSTOMERS = (year === "2569" && quarter === "3") ? 383367 : 350000;
             const basePerBranch = Math.floor(TOTAL_CUSTOMERS / realBranches.length);
             let remainder = TOTAL_CUSTOMERS - (basePerBranch * realBranches.length);
 
             const arr = realBranches.map((name, idx) => {
                 const total = basePerBranch + (idx === 0 ? remainder : 0);
-                const compPct = 0.85 + (Math.random() * 0.12); 
+                const compPct = 85 + (Math.random() * 12); 
+                const smartPct = 90 + (Math.random() * 9);
                 return {
                     branch: { name: name },
                     metrics: { 
                         customer_count: total, 
-                        imported_customer_count: Math.floor(total * compPct),
+                        imported_customer_count: Math.floor(total * (compPct/100)),
                         pipe_length_m: 500000 + Math.floor(Math.random()*100000), 
                         valve_count: 2000 + Math.floor(Math.random()*500), 
                         fire_hydrant_count: 500 + Math.floor(Math.random()*100), 
-                        leak_point_count: Math.floor(Math.random()*200)
+                        leak_point_count: Math.floor(Math.random()*200),
+                        smart_1662_percentage: smartPct,
+                        completion_percentage: compPct
                     }
                 };
             });
@@ -328,13 +330,17 @@
             const total = r.metrics.customer_count || 0;
             const imported = r.metrics.imported_customer_count || 0;
             const pending = Math.max(0, total - imported);
-            const p = total ? (imported / total * 100) : 0;
+            const p = r.metrics.completion_percentage !== undefined 
+                ? r.metrics.completion_percentage 
+                : (total ? (imported / total * 100) : 0);
+            
             return { 
                 name: r.branch.name, 
                 pct: p > 100 ? 100 : p, 
                 remain: p > 100 ? 0 : 100 - p,
                 pending: pending,
-                leak: r.metrics.leak_point_count || 0
+                leak: r.metrics.leak_point_count || 0,
+                smart1662: r.metrics.smart_1662_percentage || 0
             };
         }).sort((a, b) => a.pct - b.pct);
 
@@ -360,12 +366,28 @@
                 },
                 yaxis: { max: 100, labels: { formatter: (val) => val + "%", style: { fontSize: '12px', fontWeight: 700, colors: '#475569' } } },
                 legend: { show: false },
-                grid: { borderColor: '#f1f5f9', strokeDashArray: 4 }
+                grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+                tooltip: {
+                    y: {
+                        formatter: function (val) {
+                            return Number(val).toFixed(2) + "%";
+                        }
+                    }
+                }
             });
             barChartInst.render();
         } else {
             barChartInst.updateSeries([{ data: sorted.map(s => s.pct) }, { data: sorted.map(s => s.remain) }]);
-            barChartInst.updateOptions({ xaxis: { categories: sorted.map(s => s.name) } });
+            barChartInst.updateOptions({ 
+                xaxis: { categories: sorted.map(s => s.name) },
+                tooltip: {
+                    y: {
+                        formatter: function (val) {
+                            return Number(val).toFixed(2) + "%";
+                        }
+                    }
+                }
+            });
         }
 
         // 4. Update Bottom Rankings
@@ -383,14 +405,15 @@
             ${index < 2 ? '<hr class="border-slate-100">' : ''}
         `).join('');
 
-        const sortedLeak = [...sorted].sort((a, b) => b.leak - a.leak).slice(0, 3);
-        document.getElementById("rankingLeak").innerHTML = sortedLeak.map((item, index) => `
+        // สรุปสาขาเร่งดำเนินการ (ด้านท่อแตกรั่ว) เชื่อมต่อกับ Smart 1662(%) เรียงตาม % จากน้อยไปมาก
+        const sortedSmart1662 = [...sorted].sort((a, b) => a.smart1662 - b.smart1662).slice(0, 3);
+        document.getElementById("rankingLeak").innerHTML = sortedSmart1662.map((item, index) => `
             <div class="flex justify-between items-center text-[15px] font-bold text-slate-700 py-1">
                 <div class="flex items-center gap-3">
                     <span class="text-slate-400 w-4 text-right text-sm">${index + 1}</span>
-                    <span>${item.name} <span class="text-slate-400 font-normal">(- %)</span></span>
+                    <span class="${index === 0 ? 'text-red-600' : 'text-slate-700'}">${item.name} (${item.smart1662.toFixed(2)}%)</span>
                 </div>
-                <span class="text-slate-600 font-semibold text-sm">${fmt(item.leak)} จุด</span>
+                <span class="text-slate-600 font-semibold text-sm">Smart 1662: <span class="text-blue-600 font-bold">${item.smart1662.toFixed(2)}%</span></span>
             </div>
             ${index < 2 ? '<hr class="border-slate-100">' : ''}
         `).join('');
