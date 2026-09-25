@@ -34,8 +34,11 @@
     <header class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">รายงานผลการนำเข้าข้อมูล GIS งานแผนที่แนวท่อฯ การประปาส่วนภูมิภาค เขต 5</h1>
-                <p id="headerSubtitle" class="text-lg font-medium text-slate-600 mt-1">ไตรมาส 3 ปีงบประมาณ 2569</p>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight leading-snug">
+                    รายงานผลการนำเข้าข้อมูล GIS<br>
+                    <span class="text-xl sm:text-2xl font-bold text-slate-700">งานแผนที่แนวท่อฯ การประปาส่วนภูมิภาค เขต 5</span>
+                </h1>
+                <p id="headerSubtitle" class="text-lg font-medium text-slate-600 mt-2">ไตรมาส 3 ปีงบประมาณ 2569</p>
             </div>
             
             <div class="flex flex-wrap items-center gap-2">
@@ -396,7 +399,7 @@
             <div class="flex justify-between items-center text-[15px] font-bold py-1">
                 <div class="flex items-center gap-3">
                     <span class="text-slate-400 w-4 text-right text-sm">${index + 1}</span>
-                    <span class="${index === 0 ? 'text-red-600' : 'text-slate-700'}">${item.name} (${item.pct.toFixed(2)}%)</span>
+                    <span class="${index === 0 ? 'text-red-600' : 'text-slate-700'}">กปภ.สาขา${item.name} (${item.pct.toFixed(2)}%)</span>
                 </div>
                 <div class="text-slate-600 font-semibold text-sm">
                     คงเหลือ <span class="text-orange-600 font-bold">${fmt(item.pending)}</span> ราย
@@ -405,15 +408,15 @@
             ${index < 2 ? '<hr class="border-slate-100">' : ''}
         `).join('');
 
-        // สรุปสาขาเร่งดำเนินการ (ด้านท่อแตกรั่ว) เชื่อมต่อกับ Smart 1662(%) เรียงตาม % จากน้อยไปมาก
+        // สรุปสาขาเร่งดำเนินการ (ด้านท่อแตกรั่ว) แสดง กปภ.สาขา + ชื่อสาขา + (%)
         const sortedSmart1662 = [...sorted].sort((a, b) => a.smart1662 - b.smart1662).slice(0, 3);
         document.getElementById("rankingLeak").innerHTML = sortedSmart1662.map((item, index) => `
             <div class="flex justify-between items-center text-[15px] font-bold text-slate-700 py-1">
                 <div class="flex items-center gap-3">
                     <span class="text-slate-400 w-4 text-right text-sm">${index + 1}</span>
-                    <span class="${index === 0 ? 'text-red-600' : 'text-slate-700'}">${item.name} (${item.smart1662.toFixed(2)}%)</span>
+                    <span class="${index === 0 ? 'text-red-600' : 'text-slate-700'}">กปภ.สาขา${item.name} (${item.smart1662.toFixed(2)}%)</span>
                 </div>
-                <span class="text-slate-600 font-semibold text-sm">Smart 1662: <span class="text-blue-600 font-bold">${item.smart1662.toFixed(2)}%</span></span>
+                <span class="text-blue-600 font-bold text-sm">Smart 1662</span>
             </div>
             ${index < 2 ? '<hr class="border-slate-100">' : ''}
         `).join('');
