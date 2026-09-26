@@ -24,11 +24,56 @@
     .loading { opacity: 0.55; pointer-events: none; }
     .toast { position: fixed; right: 20px; bottom: 20px; z-index: 100; padding: 13px 17px; border-radius: 12px; color: #fff; background: #126e46; box-shadow: 0 10px 30px rgba(0,0,0,.18); display: none; }
     .toast.show { display: block; }
+
+    /* Style สำหรับการคลิกเลือกสินทรัพย์ */
+    .asset-card {
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 10px;
+        transition: all 0.2s ease-in-out;
+    }
+    .asset-card:hover {
+        background-color: #f1f5f9;
+        transform: translateY(-2px);
+    }
 </style>
 </head>
 <body class="p-4 sm:p-8">
 
-<div class="max-w-7xl mx-auto space-y-6">
+<!-- ================= 🔒 1. LOGIN OVERLAY (แสดงก่อนเข้าหน้าเว็บ) ================= -->
+<div id="loginOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-md p-8 relative overflow-hidden">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            </div>
+            <h2 class="text-2xl font-extrabold text-slate-800">เข้าสู่ระบบ</h2>
+            <p class="text-xs text-slate-500 mt-1">รายงานผลการนำเข้าข้อมูล GIS กปภ.ข.5</p>
+        </div>
+
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อผู้ใช้งาน (Username)</label>
+                <input type="text" id="loginUser" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold" placeholder="กรอกชื่อผู้ใช้งาน" required>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
+                <input type="password" id="loginPass" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold" placeholder="กรอกรหัสผ่าน" required>
+            </div>
+
+            <div id="loginError" class="text-xs font-bold text-red-500 text-center hidden">
+                ⚠️ ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง!
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-lg shadow-blue-500/30 transition duration-200 text-sm">
+                เข้าสู่ระบบ
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ================= 📊 2. MAIN DASHBOARD CONTENT ================= -->
+<div id="mainContent" class="max-w-7xl mx-auto space-y-6 hidden">
 
     <!-- Header Section -->
     <header class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
@@ -60,6 +105,7 @@
                 </select>
                 
                 <button id="sync" class="btn btn-primary ml-2">↻ ดึงข้อมูลจาก MongoDB</button>
+                <button id="logoutBtn" class="btn bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 ml-2">🚪 ออกจากระบบ</button>
             </div>
         </div>
 
@@ -118,9 +164,10 @@
 
         <!-- Card 3 -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 h-36 flex flex-col justify-between">
-            <div class="text-[15px] font-extrabold text-slate-800 mb-1">สินทรัพย์ประปาต่างๆ</div>
-            <div class="grid grid-cols-2 gap-x-2 gap-y-3 h-full items-center">
-                <div class="flex items-center gap-2.5">
+            <div class="text-[15px] font-extrabold text-slate-800 mb-1">สินทรัพย์ประปาต่างๆ <span class="text-xs font-normal text-slate-400">(คลิกเพื่อดูรายสาขา)</span></div>
+            <div class="grid grid-cols-2 gap-x-2 gap-y-1 h-full items-center">
+                <!-- คลิกดูแนวท่อ -->
+                <div class="flex items-center gap-2.5 asset-card" onclick="openAssetModal('pipe')">
                     <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M21 10h-2V7h-4v3H9V7H5v3H3v4h2v3h4v-3h8v3h4v-3h2v-4z"/></svg>
                     </div>
@@ -129,7 +176,8 @@
                         <div class="text-[13px] font-extrabold"><span id="kpiPipe">0</span> ม.</div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2.5">
+                <!-- คลิกดูประตูน้ำ -->
+                <div class="flex items-center gap-2.5 asset-card" onclick="openAssetModal('valve')">
                     <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13h-4V7h2V5h-2V3h-2v2h-2V3H9v2H7V3H5v2H3v2h2v6H1v2h22v-2h-4zM7 7h10v6H7V7z"/></svg>
                     </div>
@@ -138,7 +186,8 @@
                         <div class="text-[13px] font-extrabold"><span id="kpiValve">0</span> ตัว</div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2.5">
+                <!-- คลิกดูหัวดับเพลิง -->
+                <div class="flex items-center gap-2.5 asset-card" onclick="openAssetModal('hydrant')">
                     <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c-1.1 0-2 .9-2 2v2H7c-1.1 0-2 .9-2 2v2h14V8c0-1.1-.9-2-2-2h-3V4c0-1.1-.9-2-2-2zm0 10c-2.21 0-4 1.79-4 4v6h8v-6c0-2.21-1.79-4-4-4z"/></svg>
                     </div>
@@ -147,7 +196,8 @@
                         <div class="text-[13px] font-extrabold"><span id="kpiHydrant">0</span> ตัว</div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2.5">
+                <!-- คลิกดูท่อรั่ว -->
+                <div class="flex items-center gap-2.5 asset-card" onclick="openAssetModal('leak')">
                     <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 8c-2.76 0-5 2.24-5 5v5h10v-5c0-2.76-2.24-5-5-5z"/></svg>
                     </div>
@@ -198,6 +248,30 @@
 
 </div>
 
+<!-- Modal แสดงกราฟรายสาขาสำหรับสินทรัพย์ -->
+<div id="assetModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-11/12 max-w-4xl p-6 relative flex flex-col max-h-[90vh]">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+            <div>
+                <h3 id="modalTitle" class="text-xl font-extrabold text-slate-800">ข้อมูลสินทรัพย์ประปา</h3>
+                <p id="modalSubtitle" class="text-sm font-medium text-slate-500 mt-0.5">จำแนกตามรายสาขา (เรียงลำดับจากมากไปน้อย)</p>
+            </div>
+            <button onclick="closeAssetModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold p-1">&times;</button>
+        </div>
+        
+        <!-- Modal Body (Chart Area) -->
+        <div class="py-4 overflow-y-auto flex-1">
+            <div id="modalChart" class="w-full"></div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="pt-3 border-t border-slate-100 flex justify-end">
+            <button onclick="closeAssetModal()" class="btn bg-slate-100 text-slate-700 hover:bg-slate-200">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Notification -->
 <div id="toast" class="toast"></div>
 
@@ -210,10 +284,55 @@
 
     let barChartInst = null;
     let donutChartInst = null;
+    let modalChartInst = null;
+    let globalRawData = [];
 
     const fmt = n => Number(n||0).toLocaleString("th-TH");
     const pct = n => `${Number(n||0).toFixed(2)}%`;
 
+    // ================= 🔒 3. AUTHENTICATION LOGIC =================
+    const loginOverlay = document.getElementById("loginOverlay");
+    const mainContent = document.getElementById("mainContent");
+    const loginForm = document.getElementById("loginForm");
+    const loginError = document.getElementById("loginError");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    // ตรวจสอบสถานะ Login เมื่อเปิดหน้าเว็บ
+    function checkAuth() {
+        const isLoggedIn = sessionStorage.getItem("isLoggedIn");
+        if (isLoggedIn === "true") {
+            loginOverlay.classList.add("hidden");
+            mainContent.classList.remove("hidden");
+            loadData(); // โหลดข้อมูลอัตโนมัติหลัง Login
+        } else {
+            loginOverlay.classList.remove("hidden");
+            mainContent.classList.add("hidden");
+        }
+    }
+
+    // ระบบ Login
+    loginForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const u = document.getElementById("loginUser").value.trim();
+        const p = document.getElementById("loginPass").value.trim();
+
+        // 🟢 กำหนด Username และ Password สำหรับเข้าใช้งาน
+        if (u === "GIS5" && p === "123456") {
+            sessionStorage.setItem("isLoggedIn", "true");
+            loginError.classList.add("hidden");
+            checkAuth();
+        } else {
+            loginError.classList.remove("hidden");
+        }
+    });
+
+    // ระบบ Logout
+    logoutBtn.addEventListener("click", function () {
+        sessionStorage.removeItem("isLoggedIn");
+        checkAuth();
+    });
+
+    // ================= DASHBOARD FUNCTIONS =================
     function updateHeaderPeriod() {
         const yearSelect = document.getElementById("yearSelect").value;
         const quarterSelect = document.getElementById("quarterSelect").value;
@@ -253,6 +372,7 @@
                 "ดึงข้อมูลล่าสุด: " + new Date().toLocaleString("th-TH");
             document.getElementById("notice").style.display = "none";
 
+            globalRawData = arr;
             return arr;
         } catch(err) {
             setConnection(false, "เชื่อมต่อ API/MongoDB ไม่สำเร็จ");
@@ -263,6 +383,7 @@
             document.getElementById("noticeText").textContent =
                 "ไม่สามารถดึงข้อมูลจริงจาก MongoDB Atlas ได้: " + err.message;
 
+            globalRawData = [];
             return [];
         }
     }
@@ -288,7 +409,6 @@
             return;
         }
 
-        // 1. Update KPIs
         const agg = aggregate(arr);
         const completionPct = agg.customers ? (agg.imported / agg.customers * 100) : 0;
         
@@ -303,7 +423,6 @@
         document.getElementById("kpiHydrant").textContent = fmt(agg.hydrant);
         document.getElementById("kpiLeak").textContent = fmt(agg.leak);
 
-        // 2. Update Donut Chart
         if (!donutChartInst) {
             donutChartInst = new ApexCharts(document.querySelector("#donutChart"), {
                 series: [completionPct, 100 - completionPct],
@@ -318,7 +437,6 @@
             donutChartInst.updateSeries([completionPct, 100 - completionPct]);
         }
 
-        // 3. Update Data Mapping & Fallback Protection
         const sorted = [...arr].map(r => {
             const m = r.metrics || {};
             const branchName = (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา');
@@ -327,13 +445,11 @@
             const imported = m.imported_customer_count || 0;
             const pending = Math.max(0, total - imported);
             
-            // คำนวณ % ความสำเร็จ
             let p = m.completion_percentage;
             if (p === undefined || p === null) {
                 p = total ? (imported / total * 100) : 0;
             }
 
-            // Smart 1662 ต้องมาจาก MongoDB เท่านั้น
             const s1662Raw = m.smart_1662_percentage;
             const s1662 = (
                 s1662Raw !== undefined &&
@@ -352,7 +468,6 @@
             };
         }).sort((a, b) => a.pct - b.pct);
 
-        // Render Bar Chart
         if (!barChartInst) {
             barChartInst = new ApexCharts(document.querySelector("#barChart"), {
                 series: [
@@ -393,7 +508,6 @@
             });
             barChartInst.render();
         } else {
-            // อัปเดตข้อมูลและส่งชื่อ Series กำกับเสมอ
             barChartInst.updateSeries([
                 { name: 'ผลงาน', data: sorted.map(s => s.pct) }, 
                 { name: 'คงเหลือ', data: sorted.map(s => s.remain) }
@@ -414,8 +528,6 @@
             });
         }
 
-        // 4. Update Bottom Rankings
-        // สาขาที่เร่งดำเนินการ ด้านผู้ใช้น้ำ
         const top3Water = sorted.slice(0, 3);
         document.getElementById("rankingWater").innerHTML = top3Water.map((item, index) => `
             <div class="flex justify-between items-center text-[15px] font-bold py-1">
@@ -430,7 +542,6 @@
             ${index < 2 ? '<hr class="border-slate-100">' : ''}
         `).join('');
 
-        // สาขาที่เร่งดำเนินการ ด้านท่อแตกรั่ว ( Smart 1662)
         const sortedSmart1662 = [...sorted]
             .filter(item => item.smart1662 !== null)
             .sort((a, b) => a.smart1662 - b.smart1662)
@@ -452,6 +563,133 @@
             : '<div class="text-sm text-slate-500 py-2">ยังไม่มีข้อมูล Smart 1662 ใน MongoDB สำหรับช่วงเวลานี้</div>';
     }
 
+    function openAssetModal(type) {
+        if (!globalRawData || globalRawData.length === 0) {
+            alert("ยังไม่มีข้อมูลดิบจาก MongoDB กรุณากดปุ่มดึงข้อมูลก่อน");
+            return;
+        }
+
+        let title = "";
+        let unit = "";
+        let color = "#0ea5e9";
+        let dataKey = "";
+
+        if (type === 'pipe') {
+            title = "ข้อมูลแนวท่อประปา แยกรายสาขา";
+            unit = "เมตร";
+            color = "#0284c7";
+            dataKey = "pipe_length_m";
+        } else if (type === 'valve') {
+            title = "ข้อมูลประตูน้ำ แยกรายสาขา";
+            unit = "ตัว";
+            color = "#0369a1";
+            dataKey = "valve_count";
+        } else if (type === 'hydrant') {
+            title = "ข้อมูลหัวดับเพลิง แยกรายสาขา";
+            unit = "ตัว";
+            color = "#e11d48";
+            dataKey = "fire_hydrant_count";
+        } else if (type === 'leak') {
+            title = "ข้อมูลจุดท่อรั่ว แยกรายสาขา";
+            unit = "จุด";
+            color = "#f97316";
+            dataKey = "leak_point_count";
+        }
+
+        document.getElementById("modalTitle").textContent = title;
+
+        const branchData = globalRawData.map(r => {
+            const m = r.metrics || {};
+            const branchName = (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา');
+            return {
+                name: branchName,
+                val: m[dataKey] || 0
+            };
+        }).sort((a, b) => b.val - a.val);
+
+        document.getElementById("assetModal").classList.remove("hidden");
+
+        if (modalChartInst) {
+            modalChartInst.destroy();
+        }
+
+        const chartHeight = Math.max(400, branchData.length * 30);
+
+        const options = {
+            series: [{
+                name: title,
+                data: branchData.map(d => d.val)
+            }],
+            chart: {
+                type: 'bar',
+                height: chartHeight,
+                toolbar: { show: false },
+                fontFamily: 'Noto Sans Thai',
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800
+                }
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: true,
+                    barHeight: '65%',
+                    borderRadius: 4,
+                    dataLabels: {
+                        position: 'top'
+                    }
+                }
+            },
+            colors: [color],
+            dataLabels: {
+                enabled: true,
+                formatter: function (val) {
+                    return fmt(val) + " " + unit;
+                },
+                offsetX: 10,
+                style: {
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    colors: ['#334155']
+                }
+            },
+            xaxis: {
+                categories: branchData.map(d => d.name),
+                labels: {
+                    formatter: (val) => fmt(val)
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        colors: '#475569'
+                    }
+                }
+            },
+            grid: {
+                borderColor: '#f1f5f9',
+                strokeDashArray: 4
+            },
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return `${fmt(val)} ${unit}`;
+                    }
+                }
+            }
+        };
+
+        modalChartInst = new ApexCharts(document.querySelector("#modalChart"), options);
+        modalChartInst.render();
+    }
+
+    function closeAssetModal() {
+        document.getElementById("assetModal").classList.add("hidden");
+    }
+
     async function loadData() {
         document.body.classList.add("loading");
         const data = await fetchMongo();
@@ -460,7 +698,9 @@
     }
 
     document.getElementById("sync").addEventListener("click", loadData);
-    window.addEventListener("load", loadData);
+
+    // ตรวจสอบ Authentication ทันทีเมื่อเปิดหน้า
+    window.addEventListener("load", checkAuth);
 
 </script>
 </body>
