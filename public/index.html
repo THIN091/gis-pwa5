@@ -25,16 +25,17 @@
     .toast { position: fixed; right: 20px; bottom: 20px; z-index: 100; padding: 13px 17px; border-radius: 12px; color: #fff; background: #126e46; box-shadow: 0 10px 30px rgba(0,0,0,.18); display: none; }
     .toast.show { display: block; }
 
-    /* Style สำหรับการคลิกเลือกสินทรัพย์ */
-    .asset-card {
+    /* Style สำหรับการคลิกเลือกสินทรัพย์ และการคลิกดู Smart 1662 */
+    .asset-card, .clickable-header {
         cursor: pointer;
-        padding: 6px;
-        border-radius: 10px;
         transition: all 0.2s ease-in-out;
     }
     .asset-card:hover {
         background-color: #f1f5f9;
         transform: translateY(-2px);
+    }
+    .clickable-header:hover {
+        opacity: 0.8;
     }
 </style>
 </head>
@@ -239,7 +240,10 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
             <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
                 <h2 class="font-extrabold text-[17px] text-slate-800">สาขาที่เร่งดำเนินการ ด้านท่อแตกรั่ว ( Smart 1662)</h2>
-                <div class="text-xl">🏆</div>
+                <!-- ปุ่มคลิกเปิดดูสรุปรายสาขา -->
+                <button onclick="openSmart1662Modal()" class="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded-lg text-xs font-bold flex items-center gap-1.5 transition">
+                    <span>📊 ข้อมูลสรุปรายสาขา</span>
+                </button>
             </div>
             <div class="text-xs text-slate-500 mb-3">เรียงจากค่า Smart 1662 ต่ำไปสูง โดยใช้ข้อมูลจริงจาก MongoDB</div>
             <div id="rankingLeak" class="space-y-4"></div>
@@ -248,14 +252,14 @@
 
 </div>
 
-<!-- Modal แสดงกราฟรายสาขาสำหรับสินทรัพย์ -->
+<!-- Modal แสดงกราฟรายสาขาสำหรับสินทรัพย์ & Smart 1662 -->
 <div id="assetModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
     <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-11/12 max-w-4xl p-6 relative flex flex-col max-h-[90vh]">
         <!-- Modal Header -->
         <div class="flex justify-between items-center pb-4 border-b border-slate-100">
             <div>
-                <h3 id="modalTitle" class="text-xl font-extrabold text-slate-800">ข้อมูลสินทรัพย์ประปา</h3>
-                <p id="modalSubtitle" class="text-sm font-medium text-slate-500 mt-0.5">จำแนกตามรายสาขา (เรียงลำดับจากมากไปน้อย)</p>
+                <h3 id="modalTitle" class="text-xl font-extrabold text-slate-800">ข้อมูลรายละเอียด</h3>
+                <p id="modalSubtitle" class="text-sm font-medium text-slate-500 mt-0.5">จำแนกตามรายสาขา</p>
             </div>
             <button onclick="closeAssetModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold p-1">&times;</button>
         </div>
@@ -266,7 +270,8 @@
         </div>
 
         <!-- Modal Footer -->
-        <div class="pt-3 border-t border-slate-100 flex justify-end">
+        <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
+            <div id="modalLegend" class="flex flex-wrap items-center gap-4 text-xs font-bold"></div>
             <button onclick="closeAssetModal()" class="btn bg-slate-100 text-slate-700 hover:bg-slate-200">ปิดหน้าต่าง</button>
         </div>
     </div>
@@ -297,26 +302,23 @@
     const loginError = document.getElementById("loginError");
     const logoutBtn = document.getElementById("logoutBtn");
 
-    // ตรวจสอบสถานะ Login เมื่อเปิดหน้าเว็บ
     function checkAuth() {
         const isLoggedIn = sessionStorage.getItem("isLoggedIn");
         if (isLoggedIn === "true") {
             loginOverlay.classList.add("hidden");
             mainContent.classList.remove("hidden");
-            loadData(); // โหลดข้อมูลอัตโนมัติหลัง Login
+            loadData();
         } else {
             loginOverlay.classList.remove("hidden");
             mainContent.classList.add("hidden");
         }
     }
 
-    // ระบบ Login
     loginForm.addEventListener("submit", function (e) {
         e.preventDefault();
         const u = document.getElementById("loginUser").value.trim();
         const p = document.getElementById("loginPass").value.trim();
 
-        // 🟢 กำหนด Username และ Password สำหรับเข้าใช้งาน
         if (u === "GIS5" && p === "123456") {
             sessionStorage.setItem("isLoggedIn", "true");
             loginError.classList.add("hidden");
@@ -326,7 +328,6 @@
         }
     });
 
-    // ระบบ Logout
     logoutBtn.addEventListener("click", function () {
         sessionStorage.removeItem("isLoggedIn");
         checkAuth();
@@ -563,6 +564,120 @@
             : '<div class="text-sm text-slate-500 py-2">ยังไม่มีข้อมูล Smart 1662 ใน MongoDB สำหรับช่วงเวลานี้</div>';
     }
 
+    // ================= 📊 Smart 1662 Modal Chart (เรียงมากไปน้อย + แบ่งสีตามเกณฑ์) =================
+    function openSmart1662Modal() {
+        if (!globalRawData || globalRawData.length === 0) {
+            alert("ยังไม่มีข้อมูลดิบจาก MongoDB กรุณากดปุ่มดึงข้อมูลก่อน");
+            return;
+        }
+
+        document.getElementById("modalTitle").textContent = "สรุปผลงาน Smart 1662 แยกตามสาขา";
+        document.getElementById("modalSubtitle").textContent = "แสดงเปอร์เซ็นต์ความสำเร็จเรียงลำดับจากมากไปน้อย";
+        
+        // กำหนด คำอธิบายสี (Legend) แสดง 3 ระดับ
+        document.getElementById("modalLegend").innerHTML = `
+            <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-emerald-500 rounded-[3px]"></span> ผ่านเกณฑ์ (≥ 95%)</div>
+            <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-amber-500 rounded-[3px]"></span> ปานกลาง (90% - 94.99%)</div>
+            <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-rose-500 rounded-[3px]"></span> ต่ำกว่าเกณฑ์ (< 90%)</div>
+        `;
+
+        // ดึงข้อมูล Smart 1662 และเรียงลำดับจากมากไปน้อย
+        const branchData = globalRawData.map(r => {
+            const m = r.metrics || {};
+            const branchName = (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา');
+            const s1662Val = Number(m.smart_1662_percentage || 0);
+            return {
+                name: branchName,
+                val: s1662Val
+            };
+        }).sort((a, b) => b.val - a.val); // เรียงมากไปน้อย
+
+        document.getElementById("assetModal").classList.remove("hidden");
+
+        if (modalChartInst) modalChartInst.destroy();
+
+        const chartHeight = Math.max(450, branchData.length * 32);
+
+        // 🎨 กำหนดสีรายแท่งตามเกณฑ์: ≥95% (เขียว), 90-94.99% (ส้ม/เหลือง), <90% (แดง)
+        const barColors = branchData.map(d => {
+            if (d.val >= 95) return '#10b981';      // สีเขียว
+            if (d.val >= 90) return '#f59e0b';      // สีส้ม/เหลือง
+            return '#ef4444';                       // สีแดง
+        });
+
+        const options = {
+            series: [{
+                name: 'เปอร์เซ็นต์ Smart 1662',
+                data: branchData.map(d => d.val)
+            }],
+            chart: {
+                type: 'bar',
+                height: chartHeight,
+                toolbar: { show: false },
+                fontFamily: 'Noto Sans Thai',
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800
+                }
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: true, // กราฟวิ่งจากซ้ายไปขวา
+                    barHeight: '65%',
+                    borderRadius: 4,
+                    distributed: true, // กระจายสีตามอาร์เรย์ barColors
+                    dataLabels: { position: 'top' }
+                }
+            },
+            colors: barColors,
+            dataLabels: {
+                enabled: true,
+                formatter: function (val) {
+                    return val.toFixed(2) + "%";
+                },
+                offsetX: 10,
+                style: {
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    colors: ['#334155']
+                }
+            },
+            xaxis: {
+                categories: branchData.map(d => d.name),
+                max: 100,
+                labels: {
+                    formatter: (val) => val + "%"
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        colors: '#475569'
+                    }
+                }
+            },
+            legend: { show: false },
+            grid: {
+                borderColor: '#f1f5f9',
+                strokeDashArray: 4
+            },
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return `${val.toFixed(2)}%`;
+                    }
+                }
+            }
+        };
+
+        modalChartInst = new ApexCharts(document.querySelector("#modalChart"), options);
+        modalChartInst.render();
+    }
+
+    // ================= 📊 Modal Chart สำหรับสินทรัพย์ประปาอื่นๆ =================
     function openAssetModal(type) {
         if (!globalRawData || globalRawData.length === 0) {
             alert("ยังไม่มีข้อมูลดิบจาก MongoDB กรุณากดปุ่มดึงข้อมูลก่อน");
@@ -597,6 +712,8 @@
         }
 
         document.getElementById("modalTitle").textContent = title;
+        document.getElementById("modalSubtitle").textContent = "จำแนกตามรายสาขา (เรียงลำดับจากมากไปน้อย)";
+        document.getElementById("modalLegend").innerHTML = "";
 
         const branchData = globalRawData.map(r => {
             const m = r.metrics || {};
@@ -609,9 +726,7 @@
 
         document.getElementById("assetModal").classList.remove("hidden");
 
-        if (modalChartInst) {
-            modalChartInst.destroy();
-        }
+        if (modalChartInst) modalChartInst.destroy();
 
         const chartHeight = Math.max(400, branchData.length * 30);
 
@@ -636,9 +751,7 @@
                     horizontal: true,
                     barHeight: '65%',
                     borderRadius: 4,
-                    dataLabels: {
-                        position: 'top'
-                    }
+                    dataLabels: { position: 'top' }
                 }
             },
             colors: [color],
@@ -656,9 +769,7 @@
             },
             xaxis: {
                 categories: branchData.map(d => d.name),
-                labels: {
-                    formatter: (val) => fmt(val)
-                }
+                labels: { formatter: (val) => fmt(val) }
             },
             yaxis: {
                 labels: {
@@ -669,15 +780,10 @@
                     }
                 }
             },
-            grid: {
-                borderColor: '#f1f5f9',
-                strokeDashArray: 4
-            },
+            grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
             tooltip: {
                 y: {
-                    formatter: function (val) {
-                        return `${fmt(val)} ${unit}`;
-                    }
+                    formatter: function (val) { return `${fmt(val)} ${unit}`; }
                 }
             }
         };
@@ -699,7 +805,6 @@
 
     document.getElementById("sync").addEventListener("click", loadData);
 
-    // ตรวจสอบ Authentication ทันทีเมื่อเปิดหน้า
     window.addEventListener("load", checkAuth);
 
 </script>
