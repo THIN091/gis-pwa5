@@ -41,40 +41,8 @@
 </head>
 <body class="p-4 sm:p-8">
 
-<!-- ================= 🔒 1. LOGIN OVERLAY (แสดงก่อนเข้าหน้าเว็บ) ================= -->
-<div id="loginOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-md p-8 relative overflow-hidden">
-        <div class="text-center mb-6">
-            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-            </div>
-            <h2 class="text-2xl font-extrabold text-slate-800">เข้าสู่ระบบ</h2>
-            <p class="text-xs text-slate-500 mt-1">รายงานผลการนำเข้าข้อมูล GIS กปภ.ข.5</p>
-        </div>
-
-        <form id="loginForm" class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อผู้ใช้งาน (Username)</label>
-                <input type="text" id="loginUser" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold" placeholder="กรอกชื่อผู้ใช้งาน" required>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
-                <input type="password" id="loginPass" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold" placeholder="กรอกรหัสผ่าน" required>
-            </div>
-
-            <div id="loginError" class="text-xs font-bold text-red-500 text-center hidden">
-                ⚠️ ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง!
-            </div>
-
-            <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-lg shadow-blue-500/30 transition duration-200 text-sm">
-                เข้าสู่ระบบ
-            </button>
-        </form>
-    </div>
-</div>
-
-<!-- ================= 📊 2. MAIN DASHBOARD CONTENT ================= -->
-<div id="mainContent" class="max-w-7xl mx-auto space-y-6 hidden">
+<!-- ================= 📊 MAIN DASHBOARD CONTENT ================= -->
+<div class="max-w-7xl mx-auto space-y-6">
 
     <!-- Header Section -->
     <header class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
@@ -106,7 +74,6 @@
                 </select>
                 
                 <button id="sync" class="btn btn-primary ml-2">↻ ดึงข้อมูลจาก MongoDB</button>
-                <button id="logoutBtn" class="btn bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 ml-2">🚪 ออกจากระบบ</button>
             </div>
         </div>
 
@@ -214,9 +181,9 @@
     <!-- Chart Section -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mt-6">
         <div class="text-center mb-6 pt-2">
-            <h2 class="font-extrabold text-lg text-slate-800">ผลงานแยกตามสาขา (เรียงจากน้อยไปมาก)</h2>
+            <h2 class="font-extrabold text-lg text-slate-800">สรุปความก้าวหน้าการนำเข้าข้อมูลผู้ใช้น้ำ รายสาขา</h2>
             <div class="flex justify-center items-center gap-4 mt-2 text-xs font-bold text-slate-600">
-                <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-kpi-green rounded-[3px]"></span> % ผลงาน</div>
+                <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-kpi-green rounded-[3px]"></span> % ผลงาน (นำเข้าสำเร็จ)</div>
                 <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-[#e76c35] rounded-[3px]"></span> คงเหลือ</div>
             </div>
         </div>
@@ -295,45 +262,6 @@
     const fmt = n => Number(n||0).toLocaleString("th-TH");
     const pct = n => `${Number(n||0).toFixed(2)}%`;
 
-    // ================= 🔒 3. AUTHENTICATION LOGIC =================
-    const loginOverlay = document.getElementById("loginOverlay");
-    const mainContent = document.getElementById("mainContent");
-    const loginForm = document.getElementById("loginForm");
-    const loginError = document.getElementById("loginError");
-    const logoutBtn = document.getElementById("logoutBtn");
-
-    function checkAuth() {
-        const isLoggedIn = sessionStorage.getItem("isLoggedIn");
-        if (isLoggedIn === "true") {
-            loginOverlay.classList.add("hidden");
-            mainContent.classList.remove("hidden");
-            loadData();
-        } else {
-            loginOverlay.classList.remove("hidden");
-            mainContent.classList.add("hidden");
-        }
-    }
-
-    loginForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-        const u = document.getElementById("loginUser").value.trim();
-        const p = document.getElementById("loginPass").value.trim();
-
-        if (u === "GIS5" && p === "123456") {
-            sessionStorage.setItem("isLoggedIn", "true");
-            loginError.classList.add("hidden");
-            checkAuth();
-        } else {
-            loginError.classList.remove("hidden");
-        }
-    });
-
-    logoutBtn.addEventListener("click", function () {
-        sessionStorage.removeItem("isLoggedIn");
-        checkAuth();
-    });
-
-    // ================= DASHBOARD FUNCTIONS =================
     function updateHeaderPeriod() {
         const yearSelect = document.getElementById("yearSelect").value;
         const quarterSelect = document.getElementById("quarterSelect").value;
@@ -463,69 +391,64 @@
                 name: branchName, 
                 pct: Number(p) > 100 ? 100 : Number(p), 
                 remain: Number(p) > 100 ? 0 : 100 - Number(p),
+                imported: imported,
                 pending: pending,
+                total: total,
                 leak: m.leak_point_count || 0,
                 smart1662: s1662
             };
         }).sort((a, b) => a.pct - b.pct);
 
-        if (!barChartInst) {
-            barChartInst = new ApexCharts(document.querySelector("#barChart"), {
-                series: [
-                    { name: 'ผลงาน', data: sorted.map(s => s.pct) }, 
-                    { name: 'คงเหลือ', data: sorted.map(s => s.remain) }
-                ],
-                chart: { type: 'bar', height: 360, stacked: true, toolbar: { show: false }, fontFamily: 'Noto Sans Thai' },
-                colors: ['#439a58', '#e76c35'],
-                plotOptions: { bar: { horizontal: false, columnWidth: '60%', borderRadius: 2 } },
-                dataLabels: {
-                    enabled: true,
-                    formatter: function (val, opt) {
-                        if (opt.seriesIndex === 0 && val > 0 && val < 100) return val.toFixed(1) + "%";
-                        if (opt.seriesIndex === 0 && val === 100) return "100%";
-                        return "";
-                    },
-                    style: { colors: ['#fff'], fontSize: '10px', fontWeight: 700 }
+        const chartOptions = {
+            series: [
+                { name: 'นำเข้าแล้ว', data: sorted.map(s => s.pct) }, 
+                { name: 'คงเหลือ', data: sorted.map(s => s.remain) }
+            ],
+            chart: { type: 'bar', height: 360, stacked: true, toolbar: { show: false }, fontFamily: 'Noto Sans Thai' },
+            colors: ['#439a58', '#e76c35'],
+            plotOptions: { bar: { horizontal: false, columnWidth: '60%', borderRadius: 2 } },
+            dataLabels: {
+                enabled: true,
+                formatter: function (val, opt) {
+                    if (opt.seriesIndex === 0 && val > 0 && val < 100) return val.toFixed(1) + "%";
+                    if (opt.seriesIndex === 0 && val === 100) return "100%";
+                    return "";
                 },
-                stroke: { width: 0 },
-                xaxis: { 
-                    categories: sorted.map(s => s.name),
-                    labels: { rotate: -45, style: { fontSize: '11px', fontWeight: 700, colors: '#475569' } }
-                },
-                yaxis: { max: 100, labels: { formatter: (val) => val + "%", style: { fontSize: '12px', fontWeight: 700, colors: '#475569' } } },
-                legend: { show: false },
-                grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
-                tooltip: {
-                    y: {
-                        formatter: function (val, { seriesIndex, w }) {
-                            const rawName = w.globals.seriesNames[seriesIndex];
-                            const seriesName = (rawName && !rawName.startsWith('series')) 
-                                ? rawName 
-                                : (seriesIndex === 0 ? 'ผลงาน' : 'คงเหลือ');
-                            return `${seriesName}: ${Number(val).toFixed(2)}%`;
+                style: { colors: ['#fff'], fontSize: '10px', fontWeight: 700 }
+            },
+            stroke: { width: 0 },
+            xaxis: { 
+                categories: sorted.map(s => s.name),
+                labels: { rotate: -45, style: { fontSize: '11px', fontWeight: 700, colors: '#475569' } }
+            },
+            yaxis: { max: 100, labels: { formatter: (val) => val + "%", style: { fontSize: '12px', fontWeight: 700, colors: '#475569' } } },
+            legend: { show: false },
+            grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+            tooltip: {
+                y: {
+                    formatter: function (val, { seriesIndex, dataPointIndex }) {
+                        const item = sorted[dataPointIndex];
+                        if (seriesIndex === 0) {
+                            return `${fmt(item.imported)} ราย (${val.toFixed(2)}%)`;
+                        } else {
+                            return `${fmt(item.pending)} ราย (${val.toFixed(2)}%)`;
                         }
                     }
                 }
-            });
+            }
+        };
+
+        if (!barChartInst) {
+            barChartInst = new ApexCharts(document.querySelector("#barChart"), chartOptions);
             barChartInst.render();
         } else {
             barChartInst.updateSeries([
-                { name: 'ผลงาน', data: sorted.map(s => s.pct) }, 
+                { name: 'นำเข้าแล้ว', data: sorted.map(s => s.pct) }, 
                 { name: 'คงเหลือ', data: sorted.map(s => s.remain) }
             ]);
             barChartInst.updateOptions({ 
                 xaxis: { categories: sorted.map(s => s.name) },
-                tooltip: {
-                    y: {
-                        formatter: function (val, { seriesIndex, w }) {
-                            const rawName = w.globals.seriesNames[seriesIndex];
-                            const seriesName = (rawName && !rawName.startsWith('series')) 
-                                ? rawName 
-                                : (seriesIndex === 0 ? 'ผลงาน' : 'คงเหลือ');
-                            return `${seriesName}: ${Number(val).toFixed(2)}%`;
-                        }
-                    }
-                }
+                tooltip: chartOptions.tooltip
             });
         }
 
@@ -564,7 +487,6 @@
             : '<div class="text-sm text-slate-500 py-2">ยังไม่มีข้อมูล Smart 1662 ใน MongoDB สำหรับช่วงเวลานี้</div>';
     }
 
-    // ================= 📊 Smart 1662 Modal Chart (เรียงมากไปน้อย + แบ่งสีตามเกณฑ์) =================
     function openSmart1662Modal() {
         if (!globalRawData || globalRawData.length === 0) {
             alert("ยังไม่มีข้อมูลดิบจาก MongoDB กรุณากดปุ่มดึงข้อมูลก่อน");
@@ -574,14 +496,12 @@
         document.getElementById("modalTitle").textContent = "สรุปผลงาน Smart 1662 แยกตามสาขา";
         document.getElementById("modalSubtitle").textContent = "แสดงเปอร์เซ็นต์ความสำเร็จเรียงลำดับจากมากไปน้อย";
         
-        // กำหนด คำอธิบายสี (Legend) แสดง 3 ระดับ
         document.getElementById("modalLegend").innerHTML = `
             <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-emerald-500 rounded-[3px]"></span> ผ่านเกณฑ์ (≥ 95%)</div>
             <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-amber-500 rounded-[3px]"></span> ปานกลาง (90% - 94.99%)</div>
             <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-rose-500 rounded-[3px]"></span> ต่ำกว่าเกณฑ์ (< 90%)</div>
         `;
 
-        // ดึงข้อมูล Smart 1662 และเรียงลำดับจากมากไปน้อย
         const branchData = globalRawData.map(r => {
             const m = r.metrics || {};
             const branchName = (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา');
@@ -590,7 +510,7 @@
                 name: branchName,
                 val: s1662Val
             };
-        }).sort((a, b) => b.val - a.val); // เรียงมากไปน้อย
+        }).sort((a, b) => b.val - a.val);
 
         document.getElementById("assetModal").classList.remove("hidden");
 
@@ -598,11 +518,10 @@
 
         const chartHeight = Math.max(450, branchData.length * 32);
 
-        // 🎨 กำหนดสีรายแท่งตามเกณฑ์: ≥95% (เขียว), 90-94.99% (ส้ม/เหลือง), <90% (แดง)
         const barColors = branchData.map(d => {
-            if (d.val >= 95) return '#10b981';      // สีเขียว
-            if (d.val >= 90) return '#f59e0b';      // สีส้ม/เหลือง
-            return '#ef4444';                       // สีแดง
+            if (d.val >= 95) return '#10b981';
+            if (d.val >= 90) return '#f59e0b';
+            return '#ef4444';
         });
 
         const options = {
@@ -615,61 +534,36 @@
                 height: chartHeight,
                 toolbar: { show: false },
                 fontFamily: 'Noto Sans Thai',
-                animations: {
-                    enabled: true,
-                    easing: 'easeinout',
-                    speed: 800
-                }
+                animations: { enabled: true, easing: 'easeinout', speed: 800 }
             },
             plotOptions: {
                 bar: {
-                    horizontal: true, // กราฟวิ่งจากซ้ายไปขวา
+                    horizontal: true,
                     barHeight: '65%',
                     borderRadius: 4,
-                    distributed: true, // กระจายสีตามอาร์เรย์ barColors
+                    distributed: true,
                     dataLabels: { position: 'top' }
                 }
             },
             colors: barColors,
             dataLabels: {
                 enabled: true,
-                formatter: function (val) {
-                    return val.toFixed(2) + "%";
-                },
+                formatter: function (val) { return val.toFixed(2) + "%"; },
                 offsetX: 10,
-                style: {
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    colors: ['#334155']
-                }
+                style: { fontSize: '11px', fontWeight: 700, colors: ['#334155'] }
             },
             xaxis: {
                 categories: branchData.map(d => d.name),
                 max: 100,
-                labels: {
-                    formatter: (val) => val + "%"
-                }
+                labels: { formatter: (val) => val + "%" }
             },
             yaxis: {
-                labels: {
-                    style: {
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        colors: '#475569'
-                    }
-                }
+                labels: { style: { fontSize: '12px', fontWeight: 700, colors: '#475569' } }
             },
             legend: { show: false },
-            grid: {
-                borderColor: '#f1f5f9',
-                strokeDashArray: 4
-            },
+            grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
             tooltip: {
-                y: {
-                    formatter: function (val) {
-                        return `${val.toFixed(2)}%`;
-                    }
-                }
+                y: { formatter: function (val) { return `${val.toFixed(2)}%`; } }
             }
         };
 
@@ -677,7 +571,6 @@
         modalChartInst.render();
     }
 
-    // ================= 📊 Modal Chart สำหรับสินทรัพย์ประปาอื่นๆ =================
     function openAssetModal(type) {
         if (!globalRawData || globalRawData.length === 0) {
             alert("ยังไม่มีข้อมูลดิบจาก MongoDB กรุณากดปุ่มดึงข้อมูลก่อน");
@@ -740,11 +633,7 @@
                 height: chartHeight,
                 toolbar: { show: false },
                 fontFamily: 'Noto Sans Thai',
-                animations: {
-                    enabled: true,
-                    easing: 'easeinout',
-                    speed: 800
-                }
+                animations: { enabled: true, easing: 'easeinout', speed: 800 }
             },
             plotOptions: {
                 bar: {
@@ -757,34 +646,20 @@
             colors: [color],
             dataLabels: {
                 enabled: true,
-                formatter: function (val) {
-                    return fmt(val) + " " + unit;
-                },
+                formatter: function (val) { return fmt(val) + " " + unit; },
                 offsetX: 10,
-                style: {
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    colors: ['#334155']
-                }
+                style: { fontSize: '11px', fontWeight: 700, colors: ['#334155'] }
             },
             xaxis: {
                 categories: branchData.map(d => d.name),
                 labels: { formatter: (val) => fmt(val) }
             },
             yaxis: {
-                labels: {
-                    style: {
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        colors: '#475569'
-                    }
-                }
+                labels: { style: { fontSize: '12px', fontWeight: 700, colors: '#475569' } }
             },
             grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
             tooltip: {
-                y: {
-                    formatter: function (val) { return `${fmt(val)} ${unit}`; }
-                }
+                y: { formatter: function (val) { return `${fmt(val)} ${unit}`; } }
             }
         };
 
@@ -805,7 +680,8 @@
 
     document.getElementById("sync").addEventListener("click", loadData);
 
-    window.addEventListener("load", checkAuth);
+    // โหลดข้อมูลอัตโนมัติทันทีเมื่อเปิดหน้าเว็บโดยไม่ต้อง Login
+    window.addEventListener("load", loadData);
 
 </script>
 </body>
