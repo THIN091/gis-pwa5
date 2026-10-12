@@ -3,686 +3,337 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ระบบรายงานผลการนำเข้าข้อมูล GIS กปภ.ข.5</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<title>แผนดำเนินงานแผนที่แนวท่อและสำรวจตรวจสอบข้อมูล GIS 2570</title>
+<!-- Include Chart.js สำหรับทำแผนภูมิทรงกลม -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-    body { font-family: "Noto Sans Thai", sans-serif; background-color: #f8f6f0; color: #1e293b; }
-    .bg-kpi-green { background-color: #439a58; }
-    .bg-kpi-blue { background-color: #dcf1fa; }
-    .text-navy { color: #172a45; }
-    
-    .filter { border: 1px solid #d7e1ea; border-radius: 8px; background: #fff; padding: 6px 12px; font-weight: 600; outline: none; font-size: 14px;}
-    .filter:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,.12); }
-    .btn { border: 0; border-radius: 8px; padding: 6px 15px; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 14px;}
-    .btn-primary { background: #0b6fae; color: #fff; }
-    .btn-primary:hover { background: #095c90; }
-    .status-dot { width: 9px; height: 9px; border-radius: 999px; display: inline-block; }
-    .loading { opacity: 0.55; pointer-events: none; }
-    .toast { position: fixed; right: 20px; bottom: 20px; z-index: 100; padding: 13px 17px; border-radius: 12px; color: #fff; background: #126e46; box-shadow: 0 10px 30px rgba(0,0,0,.18); display: none; }
-    .toast.show { display: block; }
+:root{--navy:#0f2b54;--blue:#1967d2;--cyan:#00a8cc;--pale:#f0f5fb;--ink:#1e293b;--muted:#475569;--line:#cbd5e1;--green:#0d9448;--orange:#d97706;--red:#dc2626}
+*{box-sizing:border-box}body{margin:0;background:#f8fafc;color:var(--ink);font-family:"Leelawadee UI","Tahoma",sans-serif;font-size:15px;line-height:1.5}
+.topbar{background:linear-gradient(120deg,#0f2b54 0%,#1967d2 58%,#00a8cc 100%);color:white;padding:30px clamp(20px,4vw,56px);position:relative;overflow:hidden;box-shadow:0 10px 28px rgba(15,43,84,0.15)}
+.topbar:after{content:"";position:absolute;width:260px;height:260px;border:36px solid rgba(255,255,255,0.12);border-radius:50%;right:-55px;top:-120px}
+.eyebrow{font-size:13px;letter-spacing:1.2px;text-transform:uppercase;opacity:.9;font-weight:700}.topbar h1{margin:8px 0 8px;font-size:clamp(24px,3vw,34px);line-height:1.3;font-weight:700}.topbar p{margin:0;color:#f1f5f9;font-size:15px}
 
-    /* Style สำหรับการคลิกเลือกสินทรัพย์ และการคลิกดู Smart 1662 */
-    .asset-card, .clickable-header {
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-    }
-    .asset-card:hover {
-        background-color: #f1f5f9;
-        transform: translateY(-2px);
-    }
-    .clickable-header:hover {
-        opacity: 0.8;
-    }
+.wrap{max-width:100%;margin:24px 0;padding:0 16px 36px}
+.layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:24px;align-items:start;transition:all 0.3s ease}
+.layout.collapsed{grid-template-columns:0px minmax(0,1fr)}
+
+.sidebar{background:linear-gradient(180deg,#ffffff,#f8fafc);border:1px solid var(--line);border-left:0;border-radius:0 20px 20px 0;padding:18px;box-shadow:5px 12px 30px rgba(15,43,84,0.08);position:sticky;top:14px;overflow:hidden;transition:all 0.3s ease;width:320px}
+.layout.collapsed .sidebar{opacity:0;visibility:hidden;padding:0;border:0;width:0}
+
+.side-title{font-size:15px;color:var(--navy);font-weight:800;padding:8px 8px 14px;letter-spacing:.5px}
+.side-title span{font-size:13px;color:var(--muted);font-weight:600;display:block;margin-top:4px}
+
+.tab{width:100%;border:1px solid transparent;background:transparent;text-align:left;padding:15px 14px;border-radius:14px;display:flex;gap:14px;align-items:center;color:var(--muted);font:inherit;font-size:15px;cursor:pointer;margin-bottom:8px;transition:.18s}
+.tab:hover{background:#f1f5f9;border-color:#e2e8f0;color:var(--navy)}.tab.active{background:linear-gradient(110deg,#e0f2fe,#e0f7fa);border-color:#bae6fd;color:var(--navy);font-weight:bold;box-shadow:inset 4px 0 var(--blue),0 4px 12px rgba(25,103,210,0.08)}
+.tab span{white-space:normal;word-break:break-word;line-height:1.4}
+.num{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:#e2e8f0;color:var(--blue);font-size:16px;font-weight:800;flex-shrink:0}
+.tab.active .num{background:linear-gradient(135deg,var(--blue),var(--cyan));color:white}
+.tab small{display:block;font-size:13px;font-weight:normal;color:var(--muted);margin-top:4px}
+
+.content{min-width:0}
+.panel{display:none;animation:fade .2s ease}.panel.active{display:block}@keyframes fade{from{opacity:.55;transform:translateY(4px)}to{opacity:1;transform:none}}
+.panel-head{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:20px}.panel-head h2{margin:0;font-size:clamp(22px,2vw,28px);color:var(--navy);font-weight:700;letter-spacing:-.3px}
+.pill{white-space:nowrap;background:#dcfce7;color:#166534;padding:8px 14px;border-radius:99px;font-size:13px;font-weight:700}
+.card{background:white;border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:18px;box-shadow:0 8px 24px rgba(15,43,84,0.06)}
+.card h3{margin:0 0 8px;font-size:18px;color:var(--navy);font-weight:700}.desc{color:var(--muted);font-size:14px;margin:0 0 18px;line-height:1.6}
+
+/* Task Item */
+.task{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:16px;align-items:start;padding:18px 0;border-top:1px solid #e2e8f0}.task:first-of-type{border-top:0}
+.task-icon{width:44px;height:44px;border-radius:12px;background:#e0f2fe;display:grid;place-items:center;font-size:20px}
+.task h4{margin:2px 0 6px;font-size:16px;font-weight:700;color:var(--navy)}.task p{margin:0;color:var(--muted);font-size:14px;line-height:1.6}
+.tag-plan{font-size:12px;color:#92400e;background:#fef3c7;border-radius:99px;padding:6px 14px;white-space:nowrap;font-weight:700;border:1px solid #fde68a}
+
+/* จัดแถว OJT ให้ Plugin อยู่ตรงกลาง */
+.task-ojt{display:grid;grid-template-columns:46px 1fr auto auto;align-items:center;gap:18px}
+.ojt-media{display:flex;align-items:center;gap:12px;margin:0}
+.ojt-img-card{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:var(--navy);transition:.2s}
+.ojt-img-card:hover{border-color:var(--blue);background:#f0f7ff;transform:translateY(-2px)}
+.ojt-img-card img{width:36px;height:36px;object-fit:cover;border-radius:8px;background:#e2e8f0;border:1px solid #cbd5e1}
+
+/* ปรับ Survey Grid และ Branch Card */
+.survey-grid{display:grid;grid-template-columns:1fr;gap:24px}
+.survey-card{background:linear-gradient(180deg,#ffffff,#f8fafc);border:1px solid var(--line);border-radius:20px;padding:26px;box-shadow:0 10px 28px rgba(15,43,84,0.06);position:relative;overflow:hidden}
+.survey-card:before{content:"";position:absolute;left:0;top:0;width:100%;height:5px;background:linear-gradient(90deg,var(--blue),var(--cyan))}
+.survey-card h3{margin:0 0 8px;color:var(--navy);font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px}
+.survey-card>p{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 16px}
+
+.branch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:18px}
+.branch-card{border:1px solid var(--line);border-radius:16px;background:#fff;padding:16px 14px 14px;box-shadow:0 6px 18px rgba(15,43,84,0.06);min-width:0;transition:transform .18s,box-shadow .18s;display:flex;flex-direction:column;justify-content:space-between}
+.branch-card:hover{transform:translateY(-3px);box-shadow:0 12px 24px rgba(15,43,84,0.1)}
+.branch-title{font-size:14px;font-weight:800;color:var(--navy);min-height:36px;line-height:1.4}
+.branch-status{font-size:11px;font-weight:700;display:inline-flex;align-items:center;padding:5px 9px;border-radius:99px;margin:6px 0 2px;width:fit-content}
+.branch-status.pending{background:#fef3c7;color:#92400e}
+.branch-status.partial{background:#e0f2fe;color:#0369a1}
+.branch-chart{height:140px;position:relative;margin:10px auto 0;width:100%;max-width:170px}
+.chart-key{text-align:center;font-size:11px;font-weight:600;color:var(--muted);line-height:1.4;margin-top:8px;min-height:28px}
+
+.note{padding:14px 16px;background:#fefce8;border:1px solid #fde047;border-radius:12px;color:#854d0e;font-size:13px;line-height:1.6;margin-top:20px}
+.legend-box{display:flex;flex-wrap:wrap;gap:16px;margin:10px 0 4px;font-size:12px;font-weight:600;color:var(--muted)}
+.legend-item{display:inline-flex;align-items:center;gap:6px}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+.footer{text-align:center;color:var(--muted);font-size:13px;padding:28px 0 12px;font-weight:600}
+
+@media(max-width:992px){
+  .task-ojt{grid-template-columns:46px 1fr auto;row-gap:12px}
+  .task-ojt .ojt-media{grid-column:2 / -1}
+}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.sidebar{position:static;display:flex;overflow-x:auto;gap:6px;padding:10px;border-left:1px solid var(--line);width:100%}.side-title{display:none}.tab{min-width:200px;margin:0}}
+@media(max-width:520px){.branch-grid{grid-template-columns:1fr 1fr}.branch-card{padding:12px 8px}.branch-title{font-size:12px}.task,.task-ojt{grid-template-columns:1fr;gap:8px}}
+
+/* Login gate */
+#appRoot{display:none}body.authenticated #appRoot{display:block}
+.login-gate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,43,84,.82);backdrop-filter:blur(8px)}
+body.authenticated .login-gate{display:none}
+.login-card{width:min(100%,420px);padding:34px;background:#fff;border:1px solid #dbe4ef;border-radius:22px;box-shadow:0 24px 70px rgba(4,24,54,.3)}
+.login-icon{width:58px;height:58px;margin:0 auto 14px;border-radius:18px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--blue),var(--cyan));font-size:26px}
+.login-card h2{margin:0;text-align:center;color:var(--navy);font-size:25px}.login-subtitle{text-align:center;color:var(--muted);font-size:13px;margin:5px 0 24px}
+.login-field{display:block;margin:14px 0 6px;color:var(--navy);font-weight:700;font-size:13px}
+.login-card input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:11px;font:inherit;outline:none}
+.login-card input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(25,103,210,.13)}
+.login-error{display:none;color:#dc2626;font-weight:700;text-align:center;font-size:13px;margin:12px 0}
+.login-error.show{display:block}
+.login-submit{width:100%;margin-top:15px;padding:12px;border:0;border-radius:11px;color:#fff;background:linear-gradient(110deg,var(--blue),var(--cyan));font:inherit;font-weight:800;cursor:pointer}
+.import-frame-wrap{height:calc(100vh - 260px);min-height:620px;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(15,43,84,.06)}
+.import-frame{display:block;width:100%;height:100%;border:0;background:#fff}
+@media(max-width:600px){.login-card{padding:26px 22px}.import-frame-wrap{height:78vh;min-height:580px}}
 </style>
 </head>
-<body class="p-4 sm:p-8">
+<body>
+<div class="login-gate" id="loginGate">
+  <form class="login-card" id="loginForm">
+    <div class="login-icon">🔒</div>
+    <h2>เข้าสู่ระบบ</h2>
+    <p class="login-subtitle">ระบบติดตามแผนดำเนินงาน GIS กปภ.ข.5</p>
+    <label class="login-field" for="loginUser">ชื่อผู้ใช้งาน</label>
+    <input id="loginUser" type="text" autocomplete="username" placeholder="กรอกชื่อผู้ใช้งาน" required>
+    <label class="login-field" for="loginPass">รหัสผ่าน</label>
+    <input id="loginPass" type="password" autocomplete="current-password" placeholder="กรอกรหัสผ่าน" required>
+    <div class="login-error" id="loginError">⚠️ ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง</div>
+    <button class="login-submit" type="submit">เข้าสู่ระบบ</button>
+  </form>
+</div>
+<div id="appRoot">
 
-<!-- ================= 📊 MAIN DASHBOARD CONTENT ================= -->
-<div class="max-w-7xl mx-auto space-y-6">
+<header class="topbar">
+  <div class="eyebrow">GIS • PWA Region 5 2570</div>
+  <h1>แผนดำเนินงานแผนที่แนวท่อ (GIS) 2570</h1>
+  <p>ระบบติดตามความคืบหน้างานสารสนเทศภูมิศาสตร์ กปภ.ข.5</p>
+</header>
 
-    <!-- Header Section -->
-    <header class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+<main class="wrap">
+  <div class="layout collapsed" id="mainLayout">
+    <!-- เมนูด้านซ้าย (Auto Hide/Show ชิดขอบซ้าย และทำงานเมื่อเลื่อนเมาส์ไปแตะ) -->
+    <nav class="sidebar" id="sidebarMenu" aria-label="เมนูหลัก">
+      <div class="side-title">✦ เมนูแผนดำเนินงาน <span>GIS WORK PLAN · 2570</span></div>
+      <!-- กำหนดให้แท็บที่ 1 เป็นหน้าแรก -->
+      <button class="tab active" data-tab="support"><span class="num">01</span><span>งานสนับสนุนและบริการข้อมูล<small>หัวข้อ 1 · 2 · 3 · 7</small></span></button>
+      <button class="tab" data-tab="survey"><span class="num">02</span><span>สำรวจและตรวจสอบข้อมูล GIS<small>หัวข้อ 5 · 6</small></span></button>
+      <!-- เปลี่ยนแท็บที่ 3 เป็น ระบบติดตามผลการนำเข้าข้อมูล GIS และกำหนดเป็น หัวข้อ 4 -->
+      <button class="tab" data-tab="import"><span class="num">03</span><span>ระบบติดตามผลการนำเข้าข้อมูล GIS<small>หัวข้อ 4</small></span></button>
+    </nav>
+
+    <!-- ส่วนเนื้อหาด้านขวา -->
+    <section class="content">
+      
+      <!-- แท็บที่ 1: งานสนับสนุนและบริการข้อมูล (หน้าแรก) -->
+      <div class="panel active" id="support">
+        <div class="panel-head"><div><h2>งานสนับสนุนและบริการข้อมูล</h2></div><span class="pill">4 หัวข้อ</span></div>
+        <article class="card">
+          <h3>รายการดำเนินงาน</h3><p class="desc">เลือกดูหัวข้องานและใช้เป็นรายการติดตามการดำเนินงานประจำปี</p>
+          
+          <div class="task task-ojt">
+            <div class="task-icon">🎓</div>
             <div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight leading-snug">
-                    รายงานผลการนำเข้าข้อมูล GIS<br>
-                    <span class="text-xl sm:text-2xl font-bold text-slate-700">งานแผนที่แนวท่อฯ การประปาส่วนภูมิภาค เขต 5</span>
-                </h1>
-                <p id="headerSubtitle" class="text-lg font-medium text-slate-600 mt-2">ไตรมาส 3 ปีงบประมาณ 2569</p>
+              <h4>1. ฝึกอบรมเชิงปฏิบัติการ (OJT)</h4>
+              <p>ให้ความรู้และฝึกปฏิบัติงานแก่เจ้าหน้าที่ที่เกี่ยวข้องในสังกัด กปภ.ข.5</p>
             </div>
+
+            <div class="ojt-media">
+              <div class="ojt-img-card">
+                <img src="https://placehold.co/80x80/1967d2/ffffff?text=Plugin" alt="Plugin PWA_GIS" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%231967d2\' stroke-width=\'2\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><path d=\'m9 12 2 2 4-4\'/></svg>'">
+                <span>Plugin PWA_GIS</span>
+              </div>
+              <div class="ojt-img-card">
+                <img src="https://placehold.co/80x80/00a8cc/ffffff?text=Plugin" alt="Plugin ช่วยปฏิบัติงาน" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2300a8cc\' stroke-width=\'2\'><path d=\'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z\'/></svg>'">
+                <span>Plugin ช่วยปฏิบัติงาน</span>
+              </div>
+            </div>
+
+            <span class="tag-plan">● ตามแผน ก.พ. - มิ.ย.70</span>
+          </div>
+
+          <div class="task">
+            <div class="task-icon">🧭</div>
+            <div>
+              <h4>2. ให้คำปรึกษาด้านสารสนเทศภูมิศาสตร์ (GIS)</h4>
+              <p>ให้คำแนะนำการใช้งาน GIS แก่พนักงานและผู้เกี่ยวข้อง รวมถึงติดตามการเข้าร่วมกิจกรรม</p>
+            </div>
+            <span class="tag-plan">● ตามแผน ตลอดปีงบประมาณ 70</span>
+          </div>
+
+          <div class="task">
+            <div class="task-icon">🛠️</div>
+            <div>
+              <h4>3. สนับสนุนการใช้งานโปรแกรมและแอปพลิเคชัน</h4>
+              <p>สนับสนุนการใช้ QGIS, GIS Online และ GIS Offline พร้อมปรับปรุงโปรแกรมให้เหมาะสมกับการใช้งานของสาขา</p>
+            </div>
+            <span class="tag-plan">● ตามแผน ตลอดปีงบประมาณ 70</span>
+          </div>
+
+          <div class="task">
+            <div class="task-icon">📤</div>
+            <div>
+              <h4>7. บริการข้อมูลแผนที่</h4>
+              <p>ให้บริการข้อมูลแผนที่แก่หน่วยงานภายในและหน่วยงานภายนอกตามคำขอ</p>
+            </div>
+            <span class="tag-plan">● ตามแผน ตลอดปีงบประมาณ 70</span>
+          </div>
+
+        </article>
+      </div>
+
+      <!-- แท็บที่ 2: สำรวจและตรวจสอบข้อมูล GIS -->
+      <div class="panel" id="survey">
+        <div class="panel-head">
+          <div>
+            <h2>สำรวจและตรวจสอบข้อมูล GIS</h2>
+          </div>
+          <span class="pill">หัวข้อ 5 · 6</span>
+        </div>
+        
+        <div class="survey-grid">
+          
+          <article class="survey-card">
+            <h3>🗺️ ข้อมูลสำรวจเชิงพื้นที่ KPI</h3>
+            <p>สถานะการดำเนินงานราย กปภ.สาขา ทั้ง 5 สาขา แสดงกราฟวงกลมแยกแต่ละพื้นที่เรียงตามแผนปฏิบัติงาน</p>
             
-            <div class="flex flex-wrap items-center gap-2">
-                <label class="text-sm font-bold text-slate-600">ปีงบประมาณ</label>
-                <select id="yearSelect" class="filter">
-                    <option value="2565">2565</option>
-                    <option value="2566">2566</option>
-                    <option value="2567">2567</option>
-                    <option value="2568">2568</option>
-                    <option value="2569" selected>2569</option>
-                </select>
-                
-                <label class="text-sm font-bold text-slate-600 ml-2">ไตรมาส</label>
-                <select id="quarterSelect" class="filter">
-                    <option value="1">ไตรมาส 1 (ต.ค.–ธ.ค.)</option>
-                    <option value="2">ไตรมาส 2 (ม.ค.–มี.ค.)</option>
-                    <option value="3" selected>ไตรมาส 3 (เม.ย.–มิ.ย.)</option>
-                    <option value="4">ไตรมาส 4 (ก.ค.–ก.ย.)</option>
-                </select>
-                
-                <button id="sync" class="btn btn-primary ml-2">↻ ดึงข้อมูลจาก MongoDB</button>
+            <div class="legend-box">
+              <span class="legend-item"><span class="legend-dot" style="background:#1967d2"></span> สำรวจเชิงพื้นที่ (70%)</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#0d9448"></span> นำเข้าข้อมูล (30%)</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#d97706"></span> ตามแผนปฏิบัติงาน</span>
             </div>
-        </div>
 
-        <div class="mt-4 flex flex-wrap items-center gap-3 text-xs">
-            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200">
-                <span id="connDot" class="status-dot bg-slate-400"></span>
-                <b id="connText" class="text-slate-700">ยังไม่ได้ตรวจสอบการเชื่อมต่อ</b>
-            </span>
-            <span id="lastSync" class="text-slate-500 font-medium">ยังไม่มีการดึงข้อมูล</span>
-            <span id="modeText" class="text-slate-500 font-medium"></span>
-        </div>
-    </header>
-
-    <!-- Notice Box -->
-    <div id="notice" class="rounded-xl p-4 border-l-4 border-l-amber-400 bg-amber-50/60" style="display: block;">
-        <div class="font-bold text-slate-800">สถานะข้อมูล</div>
-        <div id="noticeText" class="text-sm text-slate-600 mt-1">
-            รอการกดปุ่ม "ดึงข้อมูลจาก MongoDB" หรือกำลังเชื่อมต่อฐานข้อมูล...
-        </div>
-    </div>
-
-    <!-- 3 KPI Cards -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <!-- Card 1 -->
-        <div class="flex rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-white h-36">
-            <div class="bg-kpi-green text-white p-5 w-1/2 flex flex-col justify-center">
-                <div class="text-[15px] font-bold mb-0.5">ความสำเร็จรวม</div>
-                <div id="kpiCompletion" class="text-4xl font-extrabold">0.00%</div>
-                <div class="text-sm mt-1 text-green-100">จาก <span id="kpiBranches">0</span> สาขา</div>
-            </div>
-            <div class="w-1/2 flex items-center justify-center relative">
-                <div id="donutChart" class="w-full flex justify-center"></div>
-            </div>
-        </div>
-
-        <!-- Card 2 -->
-        <div class="bg-kpi-blue rounded-2xl shadow-sm border border-blue-100 p-5 h-36 flex flex-col justify-between relative">
-            <div>
-                <div class="text-[15px] font-bold text-slate-800">จำนวนผู้ใช้น้ำรวม</div>
-                <div id="kpiCustomers" class="text-3xl font-extrabold text-navy mt-1">0</div>
-            </div>
-            <div class="absolute top-5 right-5 text-blue-800 opacity-80">
-                <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-            </div>
-            <div class="bg-white rounded-xl p-2.5 shadow-sm text-[13px]">
-                <div class="flex items-center gap-2 mb-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-                    <span class="font-bold text-slate-700">นำเข้าสำเร็จ: <span id="kpiImported">0</span> <span id="kpiImportedPct" class="text-green-600 font-extrabold">(0.00%)</span></span>
+            <div class="branch-grid">
+              <div class="branch-card">
+                <div>
+                  <div class="branch-title">กปภ.สาขาเขาชัยสน</div>
+                  <span class="branch-status pending">● ตามแผน ต.ค. 69</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-[#e76c35]"></span>
-                    <span class="font-bold text-slate-700">คงเหลือ: <span id="kpiPending">0</span></span>
+                <div class="branch-chart"><canvas id="kpiKhaoChaison"></canvas></div>
+                <div class="chart-key">สำรวจแล้ว 70% | นำเข้า 0%</div>
+              </div>
+
+              <div class="branch-card">
+                <div>
+                  <div class="branch-title">กปภ.สาขานาทวี</div>
+                  <span class="branch-status pending">● ตามแผน ต.ค. 69</span>
                 </div>
+                <div class="branch-chart"><canvas id="kpiNaThawi"></canvas></div>
+                <div class="chart-key">สำรวจ 70% + นำเข้า 10% (รวม 80%)</div>
+              </div>
+
+              <div class="branch-card">
+                <div>
+                  <div class="branch-title">กปภ.สาขาละงู</div>
+                  <span class="branch-status pending">● ตามแผน ม.ค.-ก.พ. 70</span>
+                </div>
+                <div class="branch-chart"><canvas id="kpiLaNgu"></canvas></div>
+                <div class="chart-key">สำรวจแล้ว 0% | นำเข้า 0%</div>
+              </div>
+
+              <div class="branch-card">
+                <div>
+                  <div class="branch-title">กปภ.สาขาหาดใหญ่ (พ.)</div>
+                  <span class="branch-status pending">● ตามแผน มี.ค.-มิ.ย. 70</span>
+                </div>
+                <div class="branch-chart"><canvas id="kpiHatYai"></canvas></div>
+                <div class="chart-key">สำรวจแล้ว 0% | นำเข้า 0%</div>
+              </div>
+
+              <div class="branch-card">
+                <div>
+                  <div class="branch-title">กปภ.สาขาเบตง</div>
+                  <span class="branch-status pending">● ตามแผน ก.ค.-ก.ย. 70</span>
+                </div>
+                <div class="branch-chart"><canvas id="kpiBetong"></canvas></div>
+                <div class="chart-key">สำรวจแล้ว 0% | นำเข้า 0%</div>
+              </div>
             </div>
+          </article>
+
+          <article class="survey-card">
+            <h3>📐 จัดทำข้อมูลค่าระดับ</h3>
+            <p>ติดตามสถานะการจัดทำข้อมูลค่าระดับรายสาขา แยกกราฟเพื่อเห็นความคืบหน้าได้ทันทีเรียงตามแผนปฏิบัติงาน</p>
+            
+            <div class="legend-box">
+              <span class="legend-item"><span class="legend-dot" style="background:#1967d2"></span> เก็บข้อมูลพื้นที่ (70%)</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#0d9448"></span> ประมวลผล (30%)</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#d97706"></span> ตามแผนปฏิบัติงาน</span>
+            </div>
+
+            <div class="branch-grid">
+              <div class="branch-card">
+                <div>
+                  <div class="branch-title">กปภ.สาขาเขาชัยสน</div>
+                  <span class="branch-status pending">● ตามแผน ต.ค. 69</span>
+                </div>
+                <div class="branch-chart"><canvas id="elevKhaoChaison"></canvas></div>
+                <div class="chart-key">เก็บข้อมูล 70% | ประมวลผล 0%</div>
+              </div>
+
+              <div class="branch-card">
+                <div>
+                  <div class="branch-title">กปภ.สาขานาทวี</div>
+                  <span class="branch-status pending">● ตามแผน พ.ย.-ธ.ค. 69</span>
+                </div>
+                <div class="branch-chart"><canvas id="elevNaThawi"></canvas></div>
+                <div class="chart-key">สำรวจแล้ว 0% | นำเข้า 0%</div>
+              </div>
+
+              <div class="branch-card">
+                <div>
+                  <div class="branch-title">กปภ.สาขาละงู</div>
+                  <span class="branch-status pending">● ตามแผน ก.พ.-มี.ค. 70</span>
+                </div>
+                <div class="branch-chart"><canvas id="elevLaNgu"></canvas></div>
+                <div class="chart-key">สำรวจแล้ว 0% | นำเข้า 0%</div>
+              </div>
+            </div>
+          </article>
         </div>
 
-        <!-- Card 3 -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 h-36 flex flex-col justify-between">
-            <div class="text-[15px] font-extrabold text-slate-800 mb-1">สินทรัพย์ประปาต่างๆ <span class="text-xs font-normal text-slate-400">(คลิกเพื่อดูรายสาขา)</span></div>
-            <div class="grid grid-cols-2 gap-x-2 gap-y-1 h-full items-center">
-                <!-- คลิกดูแนวท่อ -->
-                <div class="flex items-center gap-2.5 asset-card" onclick="openAssetModal('pipe')">
-                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M21 10h-2V7h-4v3H9V7H5v3H3v4h2v3h4v-3h8v3h4v-3h2v-4z"/></svg>
-                    </div>
-                    <div class="leading-tight">
-                        <div class="text-[11px] text-slate-500 font-semibold">แนวท่อประปา:</div>
-                        <div class="text-[13px] font-extrabold"><span id="kpiPipe">0</span> ม.</div>
-                    </div>
-                </div>
-                <!-- คลิกดูประตูน้ำ -->
-                <div class="flex items-center gap-2.5 asset-card" onclick="openAssetModal('valve')">
-                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13h-4V7h2V5h-2V3h-2v2h-2V3H9v2H7V3H5v2H3v2h2v6H1v2h22v-2h-4zM7 7h10v6H7V7z"/></svg>
-                    </div>
-                    <div class="leading-tight">
-                        <div class="text-[11px] text-slate-500 font-semibold">ประตูน้ำ:</div>
-                        <div class="text-[13px] font-extrabold"><span id="kpiValve">0</span> ตัว</div>
-                    </div>
-                </div>
-                <!-- คลิกดูหัวดับเพลิง -->
-                <div class="flex items-center gap-2.5 asset-card" onclick="openAssetModal('hydrant')">
-                    <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c-1.1 0-2 .9-2 2v2H7c-1.1 0-2 .9-2 2v2h14V8c0-1.1-.9-2-2-2h-3V4c0-1.1-.9-2-2-2zm0 10c-2.21 0-4 1.79-4 4v6h8v-6c0-2.21-1.79-4-4-4z"/></svg>
-                    </div>
-                    <div class="leading-tight">
-                        <div class="text-[11px] text-slate-500 font-semibold">หัวดับเพลิง:</div>
-                        <div class="text-[13px] font-extrabold"><span id="kpiHydrant">0</span> ตัว</div>
-                    </div>
-                </div>
-                <!-- คลิกดูท่อรั่ว -->
-                <div class="flex items-center gap-2.5 asset-card" onclick="openAssetModal('leak')">
-                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 8c-2.76 0-5 2.24-5 5v5h10v-5c0-2.76-2.24-5-5-5z"/></svg>
-                    </div>
-                    <div class="leading-tight">
-                        <div class="text-[11px] text-slate-500 font-semibold">ท่อรั่ว:</div>
-                        <div class="text-[13px] font-extrabold"><span id="kpiLeak">0</span> จุด</div>
-                    </div>
-                </div>
-            </div>
+        <div class="note">
+          <strong>💡 สัดส่วนโครงสร้าง 70/30:</strong> 
+          คิดจากสัดส่วน 100% แบ่งเป็น <b>ขั้นตอนสำรวจ/เก็บข้อมูล = 70%</b> และ <b>ขั้นตอนนำเข้าข้อมูล/ประมวลผล = 30%</b>
         </div>
-    </div>
+      </div>
 
-    <!-- Chart Section -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mt-6">
-        <div class="text-center mb-6 pt-2">
-            <h2 class="font-extrabold text-lg text-slate-800">สรุปความก้าวหน้าการนำเข้าข้อมูลผู้ใช้น้ำ รายสาขา</h2>
-            <div class="flex justify-center items-center gap-4 mt-2 text-xs font-bold text-slate-600">
-                <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-kpi-green rounded-[3px]"></span> % ผลงาน (นำเข้าสำเร็จ)</div>
-                <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-[#e76c35] rounded-[3px]"></span> คงเหลือ</div>
-            </div>
+      <!-- แท็บที่ 3: ระบบติดตามผลการนำเข้าข้อมูล GIS (อัปเดต URL เป็น https://gis-pwa5.vercel.app/) -->
+      <div class="panel" id="import">
+        <div class="panel-head">
+          <div><h2>ระบบติดตามผลการนำเข้าข้อมูล GIS</h2></div>
+          <span class="pill">หัวข้อ 4</span>
         </div>
-        
-        <!-- Render Chart -->
-        <div id="barChart" class="w-full h-[360px]"></div>
-    </div>
-
-    <!-- Bottom Ranking Sections -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-        <!-- List 1: ด้านผู้ใช้น้ำ -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
-                <h2 class="font-extrabold text-[17px] text-slate-800">สาขาที่เร่งดำเนินการ ด้านผู้ใช้น้ำ</h2>
-                <div class="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold shadow-sm">i</div>
-            </div>
-            <div id="rankingWater" class="space-y-4"></div>
+        <div class="import-frame-wrap card" style="padding: 0; overflow: hidden;">
+          <iframe class="import-frame" src="https://gis-pwa5.vercel.app/" title="ระบบรายงานผลการนำเข้าข้อมูล GIS" loading="lazy" style="width: 100%; height: 100%; border: none;"></iframe>
         </div>
+      </div>
 
-        <!-- List 2: ด้านท่อแตกรั่ว -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
-                <h2 class="font-extrabold text-[17px] text-slate-800">สาขาที่เร่งดำเนินการ ด้านท่อแตกรั่ว ( Smart 1662)</h2>
-                <!-- ปุ่มคลิกเปิดดูสรุปรายสาขา -->
-                <button onclick="openSmart1662Modal()" class="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded-lg text-xs font-bold flex items-center gap-1.5 transition">
-                    <span>📊 ข้อมูลสรุปรายสาขา</span>
-                </button>
-            </div>
-            <div class="text-xs text-slate-500 mb-3">เรียงจากค่า Smart 1662 ต่ำไปสูง โดยใช้ข้อมูลจริงจาก MongoDB</div>
-            <div id="rankingLeak" class="space-y-4"></div>
-        </div>
-    </div>
-
+    </section>
+  </div>
+  <div class="footer">งานแผนที่แนวท่อ(GIS) กองระบบจำหน่าย การประปาส่วนภูมิภาคเขต 5</div>
+</main>
 </div>
 
-<!-- Modal แสดงกราฟรายสาขาสำหรับสินทรัพย์ & Smart 1662 -->
-<div id="assetModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-11/12 max-w-4xl p-6 relative flex flex-col max-h-[90vh]">
-        <!-- Modal Header -->
-        <div class="flex justify-between items-center pb-4 border-b border-slate-100">
-            <div>
-                <h3 id="modalTitle" class="text-xl font-extrabold text-slate-800">ข้อมูลรายละเอียด</h3>
-                <p id="modalSubtitle" class="text-sm font-medium text-slate-500 mt-0.5">จำแนกตามรายสาขา</p>
-            </div>
-            <button onclick="closeAssetModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold p-1">&times;</button>
-        </div>
-        
-        <!-- Modal Body (Chart Area) -->
-        <div class="py-4 overflow-y-auto flex-1">
-            <div id="modalChart" class="w-full"></div>
-        </div>
-
-        <!-- Modal Footer -->
-        <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
-            <div id="modalLegend" class="flex flex-wrap items-center gap-4 text-xs font-bold"></div>
-            <button onclick="closeAssetModal()" class="btn bg-slate-100 text-slate-700 hover:bg-slate-200">ปิดหน้าต่าง</button>
-        </div>
-    </div>
-</div>
-
-<!-- Toast Notification -->
-<div id="toast" class="toast"></div>
-
-<!-- JavaScript Integration -->
 <script>
-    const CONFIG = {
-        apiUrl: "/api/dashboard", 
-        timeoutMs: 15000
-    };
-
-    let barChartInst = null;
-    let donutChartInst = null;
-    let modalChartInst = null;
-    let globalRawData = [];
-
-    const fmt = n => Number(n||0).toLocaleString("th-TH");
-    const pct = n => `${Number(n||0).toFixed(2)}%`;
-
-    function updateHeaderPeriod() {
-        const yearSelect = document.getElementById("yearSelect").value;
-        const quarterSelect = document.getElementById("quarterSelect").value;
-        document.getElementById("headerSubtitle").textContent = `ไตรมาส ${quarterSelect} ปีงบประมาณ ${yearSelect}`;
-    }
-
-    document.getElementById("yearSelect").addEventListener("change", updateHeaderPeriod);
-    document.getElementById("quarterSelect").addEventListener("change", updateHeaderPeriod);
-    updateHeaderPeriod();
-
-    function setConnection(ok, text){
-        const dot = document.getElementById("connDot");
-        dot.className = "status-dot " + (ok ? "bg-emerald-500" : "bg-red-500");
-        document.getElementById("connText").textContent = text;
-    }
-
-    async function fetchMongo(){
-        const year = document.getElementById("yearSelect").value;
-        const quarter = document.getElementById("quarterSelect").value;
-
-        try {
-            const res = await fetch(
-                `${CONFIG.apiUrl}?year=${encodeURIComponent(year)}&quarter=${encodeURIComponent(quarter)}`,
-                { cache: "no-store" }
-            );
-
-            const json = await res.json().catch(() => ({}));
-            if (!res.ok || json.ok === false) {
-                throw new Error(json.error || "ไม่สามารถติดต่อ API ได้");
-            }
-
-            const arr = Array.isArray(json.data) ? json.data : [];
-
-            setConnection(true, "เชื่อมต่อ API สำเร็จ");
-            document.getElementById("modeText").textContent = "ข้อมูลจริงจาก MongoDB Atlas";
-            document.getElementById("lastSync").textContent =
-                "ดึงข้อมูลล่าสุด: " + new Date().toLocaleString("th-TH");
-            document.getElementById("notice").style.display = "none";
-
-            globalRawData = arr;
-            return arr;
-        } catch(err) {
-            setConnection(false, "เชื่อมต่อ API/MongoDB ไม่สำเร็จ");
-            document.getElementById("modeText").textContent = "ไม่ใช้ข้อมูลจำลอง";
-            document.getElementById("lastSync").textContent =
-                "เกิดข้อผิดพลาด: " + err.message;
-            document.getElementById("notice").style.display = "block";
-            document.getElementById("noticeText").textContent =
-                "ไม่สามารถดึงข้อมูลจริงจาก MongoDB Atlas ได้: " + err.message;
-
-            globalRawData = [];
-            return [];
-        }
-    }
-
-    function aggregate(arr){
-        return arr.reduce((a, r) => {
-            const m = r.metrics || {};
-            a.customers += m.customer_count || 0;
-            a.imported += m.imported_customer_count || 0;
-            a.pipe += m.pipe_length_m || 0;
-            a.valve += m.valve_count || 0;
-            a.hydrant += m.fire_hydrant_count || 0;
-            a.leak += m.leak_point_count || 0;
-            return a;
-        }, { customers: 0, imported: 0, pipe: 0, valve: 0, hydrant: 0, leak: 0 });
-    }
-
-    function renderUI(arr) {
-        if (!arr || arr.length === 0) {
-            document.getElementById("notice").style.display = "block";
-            document.getElementById("noticeText").textContent =
-                "ไม่พบข้อมูลจริงใน MongoDB สำหรับปีงบประมาณ/ไตรมาสที่เลือก";
-            return;
-        }
-
-        const agg = aggregate(arr);
-        const completionPct = agg.customers ? (agg.imported / agg.customers * 100) : 0;
-        
-        document.getElementById("kpiCompletion").textContent = pct(completionPct);
-        document.getElementById("kpiBranches").textContent = arr.length;
-        document.getElementById("kpiCustomers").textContent = fmt(agg.customers);
-        document.getElementById("kpiImported").textContent = fmt(agg.imported);
-        document.getElementById("kpiImportedPct").textContent = `(${pct(completionPct)})`;
-        document.getElementById("kpiPending").textContent = fmt(Math.max(0, agg.customers - agg.imported));
-        document.getElementById("kpiPipe").textContent = fmt(agg.pipe);
-        document.getElementById("kpiValve").textContent = fmt(agg.valve);
-        document.getElementById("kpiHydrant").textContent = fmt(agg.hydrant);
-        document.getElementById("kpiLeak").textContent = fmt(agg.leak);
-
-        if (!donutChartInst) {
-            donutChartInst = new ApexCharts(document.querySelector("#donutChart"), {
-                series: [completionPct, 100 - completionPct],
-                chart: { type: 'donut', height: 110, sparkline: { enabled: true } },
-                colors: ['#439a58', '#e2e8f0'],
-                plotOptions: { pie: { donut: { size: '75%', background: 'transparent' }, expandOnClick: false } },
-                stroke: { show: true, width: 3, colors: ['#ffffff'] },
-                tooltip: { enabled: false }, dataLabels: { enabled: false }
-            });
-            donutChartInst.render();
-        } else {
-            donutChartInst.updateSeries([completionPct, 100 - completionPct]);
-        }
-
-        const sorted = [...arr].map(r => {
-            const m = r.metrics || {};
-            const branchName = (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา');
-            
-            const total = m.customer_count || 0;
-            const imported = m.imported_customer_count || 0;
-            const pending = Math.max(0, total - imported);
-            
-            let p = m.completion_percentage;
-            if (p === undefined || p === null) {
-                p = total ? (imported / total * 100) : 0;
-            }
-
-            const s1662Raw = m.smart_1662_percentage;
-            const s1662 = (
-                s1662Raw !== undefined &&
-                s1662Raw !== null &&
-                s1662Raw !== "" &&
-                Number.isFinite(Number(s1662Raw))
-            ) ? Number(s1662Raw) : null;
-
-            return { 
-                name: branchName, 
-                pct: Number(p) > 100 ? 100 : Number(p), 
-                remain: Number(p) > 100 ? 0 : 100 - Number(p),
-                imported: imported,
-                pending: pending,
-                total: total,
-                leak: m.leak_point_count || 0,
-                smart1662: s1662
-            };
-        }).sort((a, b) => a.pct - b.pct);
-
-        const chartOptions = {
-            series: [
-                { name: 'นำเข้าแล้ว', data: sorted.map(s => s.pct) }, 
-                { name: 'คงเหลือ', data: sorted.map(s => s.remain) }
-            ],
-            chart: { type: 'bar', height: 360, stacked: true, toolbar: { show: false }, fontFamily: 'Noto Sans Thai' },
-            colors: ['#439a58', '#e76c35'],
-            plotOptions: { bar: { horizontal: false, columnWidth: '60%', borderRadius: 2 } },
-            dataLabels: {
-                enabled: true,
-                formatter: function (val, opt) {
-                    if (opt.seriesIndex === 0 && val > 0 && val < 100) return val.toFixed(1) + "%";
-                    if (opt.seriesIndex === 0 && val === 100) return "100%";
-                    return "";
-                },
-                style: { colors: ['#fff'], fontSize: '10px', fontWeight: 700 }
-            },
-            stroke: { width: 0 },
-            xaxis: { 
-                categories: sorted.map(s => s.name),
-                labels: { rotate: -45, style: { fontSize: '11px', fontWeight: 700, colors: '#475569' } }
-            },
-            yaxis: { max: 100, labels: { formatter: (val) => val + "%", style: { fontSize: '12px', fontWeight: 700, colors: '#475569' } } },
-            legend: { show: false },
-            grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
-            tooltip: {
-                y: {
-                    formatter: function (val, { seriesIndex, dataPointIndex }) {
-                        const item = sorted[dataPointIndex];
-                        if (seriesIndex === 0) {
-                            return `${fmt(item.imported)} ราย (${val.toFixed(2)}%)`;
-                        } else {
-                            return `${fmt(item.pending)} ราย (${val.toFixed(2)}%)`;
-                        }
-                    }
-                }
-            }
-        };
-
-        if (!barChartInst) {
-            barChartInst = new ApexCharts(document.querySelector("#barChart"), chartOptions);
-            barChartInst.render();
-        } else {
-            barChartInst.updateSeries([
-                { name: 'นำเข้าแล้ว', data: sorted.map(s => s.pct) }, 
-                { name: 'คงเหลือ', data: sorted.map(s => s.remain) }
-            ]);
-            barChartInst.updateOptions({ 
-                xaxis: { categories: sorted.map(s => s.name) },
-                tooltip: chartOptions.tooltip
-            });
-        }
-
-        const top3Water = sorted.slice(0, 3);
-        document.getElementById("rankingWater").innerHTML = top3Water.map((item, index) => `
-            <div class="flex justify-between items-center text-[15px] font-bold py-1">
-                <div class="flex items-center gap-3">
-                    <span class="text-slate-400 w-4 text-right text-sm">${index + 1}</span>
-                    <span class="${index === 0 ? 'text-red-600' : 'text-slate-700'}">กปภ.สาขา${item.name} (${item.pct.toFixed(2)}%)</span>
-                </div>
-                <div class="text-slate-600 font-semibold text-sm">
-                    คงเหลือ <span class="text-orange-600 font-bold">${fmt(item.pending)}</span> ราย
-                </div>
-            </div>
-            ${index < 2 ? '<hr class="border-slate-100">' : ''}
-        `).join('');
-
-        const sortedSmart1662 = [...sorted]
-            .filter(item => item.smart1662 !== null)
-            .sort((a, b) => a.smart1662 - b.smart1662)
-            .slice(0, 3);
-
-        document.getElementById("rankingLeak").innerHTML = sortedSmart1662.length
-            ? sortedSmart1662.map((item, index) => `
-                <div class="flex justify-between items-center text-[15px] font-bold text-slate-700 py-1">
-                    <div class="flex items-center gap-3">
-                        <span class="text-slate-400 w-4 text-right text-sm">${index + 1}</span>
-                        <span class="${index === 0 ? 'text-red-600' : 'text-slate-700'}">
-                            กปภ.สาขา${item.name} (${item.smart1662.toFixed(2)}%)
-                        </span>
-                    </div>
-                    <span class="text-blue-600 font-bold text-sm">Smart 1662</span>
-                </div>
-                ${index < 2 ? '<hr class="border-slate-100">' : ''}
-            `).join('')
-            : '<div class="text-sm text-slate-500 py-2">ยังไม่มีข้อมูล Smart 1662 ใน MongoDB สำหรับช่วงเวลานี้</div>';
-    }
-
-    function openSmart1662Modal() {
-        if (!globalRawData || globalRawData.length === 0) {
-            alert("ยังไม่มีข้อมูลดิบจาก MongoDB กรุณากดปุ่มดึงข้อมูลก่อน");
-            return;
-        }
-
-        document.getElementById("modalTitle").textContent = "สรุปผลงาน Smart 1662 แยกตามสาขา";
-        document.getElementById("modalSubtitle").textContent = "แสดงเปอร์เซ็นต์ความสำเร็จเรียงลำดับจากมากไปน้อย";
-        
-        document.getElementById("modalLegend").innerHTML = `
-            <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-emerald-500 rounded-[3px]"></span> ผ่านเกณฑ์ (≥ 95%)</div>
-            <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-amber-500 rounded-[3px]"></span> ปานกลาง (90% - 94.99%)</div>
-            <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-rose-500 rounded-[3px]"></span> ต่ำกว่าเกณฑ์ (< 90%)</div>
-        `;
-
-        const branchData = globalRawData.map(r => {
-            const m = r.metrics || {};
-            const branchName = (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา');
-            const s1662Val = Number(m.smart_1662_percentage || 0);
-            return {
-                name: branchName,
-                val: s1662Val
-            };
-        }).sort((a, b) => b.val - a.val);
-
-        document.getElementById("assetModal").classList.remove("hidden");
-
-        if (modalChartInst) modalChartInst.destroy();
-
-        const chartHeight = Math.max(450, branchData.length * 32);
-
-        const barColors = branchData.map(d => {
-            if (d.val >= 95) return '#10b981';
-            if (d.val >= 90) return '#f59e0b';
-            return '#ef4444';
-        });
-
-        const options = {
-            series: [{
-                name: 'เปอร์เซ็นต์ Smart 1662',
-                data: branchData.map(d => d.val)
-            }],
-            chart: {
-                type: 'bar',
-                height: chartHeight,
-                toolbar: { show: false },
-                fontFamily: 'Noto Sans Thai',
-                animations: { enabled: true, easing: 'easeinout', speed: 800 }
-            },
-            plotOptions: {
-                bar: {
-                    horizontal: true,
-                    barHeight: '65%',
-                    borderRadius: 4,
-                    distributed: true,
-                    dataLabels: { position: 'top' }
-                }
-            },
-            colors: barColors,
-            dataLabels: {
-                enabled: true,
-                formatter: function (val) { return val.toFixed(2) + "%"; },
-                offsetX: 10,
-                style: { fontSize: '11px', fontWeight: 700, colors: ['#334155'] }
-            },
-            xaxis: {
-                categories: branchData.map(d => d.name),
-                max: 100,
-                labels: { formatter: (val) => val + "%" }
-            },
-            yaxis: {
-                labels: { style: { fontSize: '12px', fontWeight: 700, colors: '#475569' } }
-            },
-            legend: { show: false },
-            grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
-            tooltip: {
-                y: { formatter: function (val) { return `${val.toFixed(2)}%`; } }
-            }
-        };
-
-        modalChartInst = new ApexCharts(document.querySelector("#modalChart"), options);
-        modalChartInst.render();
-    }
-
-    function openAssetModal(type) {
-        if (!globalRawData || globalRawData.length === 0) {
-            alert("ยังไม่มีข้อมูลดิบจาก MongoDB กรุณากดปุ่มดึงข้อมูลก่อน");
-            return;
-        }
-
-        let title = "";
-        let unit = "";
-        let color = "#0ea5e9";
-        let dataKey = "";
-
-        if (type === 'pipe') {
-            title = "ข้อมูลแนวท่อประปา แยกรายสาขา";
-            unit = "เมตร";
-            color = "#0284c7";
-            dataKey = "pipe_length_m";
-        } else if (type === 'valve') {
-            title = "ข้อมูลประตูน้ำ แยกรายสาขา";
-            unit = "ตัว";
-            color = "#0369a1";
-            dataKey = "valve_count";
-        } else if (type === 'hydrant') {
-            title = "ข้อมูลหัวดับเพลิง แยกรายสาขา";
-            unit = "ตัว";
-            color = "#e11d48";
-            dataKey = "fire_hydrant_count";
-        } else if (type === 'leak') {
-            title = "ข้อมูลจุดท่อรั่ว แยกรายสาขา";
-            unit = "จุด";
-            color = "#f97316";
-            dataKey = "leak_point_count";
-        }
-
-        document.getElementById("modalTitle").textContent = title;
-        document.getElementById("modalSubtitle").textContent = "จำแนกตามรายสาขา (เรียงลำดับจากมากไปน้อย)";
-        document.getElementById("modalLegend").innerHTML = "";
-
-        const branchData = globalRawData.map(r => {
-            const m = r.metrics || {};
-            const branchName = (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา');
-            return {
-                name: branchName,
-                val: m[dataKey] || 0
-            };
-        }).sort((a, b) => b.val - a.val);
-
-        document.getElementById("assetModal").classList.remove("hidden");
-
-        if (modalChartInst) modalChartInst.destroy();
-
-        const chartHeight = Math.max(400, branchData.length * 30);
-
-        const options = {
-            series: [{
-                name: title,
-                data: branchData.map(d => d.val)
-            }],
-            chart: {
-                type: 'bar',
-                height: chartHeight,
-                toolbar: { show: false },
-                fontFamily: 'Noto Sans Thai',
-                animations: { enabled: true, easing: 'easeinout', speed: 800 }
-            },
-            plotOptions: {
-                bar: {
-                    horizontal: true,
-                    barHeight: '65%',
-                    borderRadius: 4,
-                    dataLabels: { position: 'top' }
-                }
-            },
-            colors: [color],
-            dataLabels: {
-                enabled: true,
-                formatter: function (val) { return fmt(val) + " " + unit; },
-                offsetX: 10,
-                style: { fontSize: '11px', fontWeight: 700, colors: ['#334155'] }
-            },
-            xaxis: {
-                categories: branchData.map(d => d.name),
-                labels: { formatter: (val) => fmt(val) }
-            },
-            yaxis: {
-                labels: { style: { fontSize: '12px', fontWeight: 700, colors: '#475569' } }
-            },
-            grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
-            tooltip: {
-                y: { formatter: function (val) { return `${fmt(val)} ${unit}`; } }
-            }
-        };
-
-        modalChartInst = new ApexCharts(document.querySelector("#modalChart"), options);
-        modalChartInst.render();
-    }
-
-    function closeAssetModal() {
-        document.getElementById("assetModal").classList.add("hidden");
-    }
-
-    async function loadData() {
-        document.body.classList.add("loading");
-        const data = await fetchMongo();
-        renderUI(data);
-        document.body.classList.remove("loading");
-    }
-
-    document.getElementById("sync").addEventListener("click", loadData);
-
-    // โหลดข้อมูลอัตโนมัติทันทีเมื่อเปิดหน้าเว็บโดยไม่ต้อง Login
-    window.addEventListener("load", loadData);
-
-</script>
-</body>
-</html>
+// Login gate: คงสถานะไว้เฉพาะแท็บเบราว์เซอร์ปัจจุบัน
+const loginForm = document.getElementById('loginForm');
+const loginError = document.getElementById('loginError');
+function setAuthenticated(ok) {
+  document.body.classList.toggle('authenticated', ok);
+  if (ok) sessionStorage.setItem('gis2570Authenticated', 'true');
+  else sessionStorage.removeItem('gis2570Authenticated');
+}
+loginForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const username = document.getElementById('loginUser
