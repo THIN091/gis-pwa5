@@ -502,4 +502,482 @@ body.authenticated .login-gate{display:none}
                   <span>📊 ข้อมูลสรุปรายสาขา</span>
                 </button>
               </div>
-              <div class="text-xs text-slate-500 mb-3">
+              <div class="text-xs text-slate-500 mb-3">เรียงจากค่า Smart 1662 ต่ำไปสูง โดยใช้ข้อมูลจริงจาก MongoDB</div>
+              <div id="rankingLeak" class="space-y-4"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </div>
+  <div class="footer">งานแผนที่แนวท่อ(GIS) กองระบบจำหน่าย การประปาส่วนภูมิภาคเขต 5</div>
+</main>
+</div>
+
+<!-- Modal แสดงกราฟรายสาขาสำหรับสินทรัพย์ & Smart 1662 -->
+<div id="assetModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+  <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-11/12 max-w-4xl p-6 relative flex flex-col max-h-[90vh]">
+    <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+      <div>
+        <h3 id="modalTitle" class="text-xl font-extrabold text-slate-800">ข้อมูลรายละเอียด</h3>
+        <p id="modalSubtitle" class="text-sm font-medium text-slate-500 mt-0.5">จำแนกตามรายสาขา</p>
+      </div>
+      <button onclick="closeAssetModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold p-1">&times;</button>
+    </div>
+    <div class="py-4 overflow-y-auto flex-1">
+      <div id="modalChart" class="w-full"></div>
+    </div>
+    <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
+      <div id="modalLegend" class="flex flex-wrap items-center gap-4 text-xs font-bold"></div>
+      <button onclick="closeAssetModal()" class="btn-sys bg-slate-100 text-slate-700 hover:bg-slate-200">ปิดหน้าต่าง</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- Login Gate Logic ---
+const loginForm = document.getElementById('loginForm');
+const loginError = document.getElementById('loginError');
+function setAuthenticated(ok) {
+  document.body.classList.toggle('authenticated', ok);
+  if (ok) {
+    sessionStorage.setItem('gis2570Authenticated', 'true');
+    // โหลดข้อมูล Dashboard ทันทีหลังล็อกอินสำเร็จ
+    loadData();
+  } else {
+    sessionStorage.removeItem('gis2570Authenticated');
+  }
+}
+loginForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  if (username === 'GIS5' && password === '123456') {
+    loginError.classList.remove('show');
+    setAuthenticated(true);
+  } else {
+    loginError.classList.add('show');
+  }
+});
+if (sessionStorage.getItem('gis2570Authenticated') === 'true') {
+  document.body.classList.add('authenticated');
+}
+
+// --- Tab Switching Logic ---
+const tabs = document.querySelectorAll('.tab');
+const panels = document.querySelectorAll('.panel');
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.toggle('active', t === tab));
+    panels.forEach(p => p.classList.toggle('active', p.id === tab.dataset.tab));
+  });
+});
+
+// --- Sidebar Auto Hide/Show on Mouse Near Left Edge ---
+const mainLayout = document.getElementById('mainLayout');
+const sidebarMenu = document.getElementById('sidebarMenu');
+document.addEventListener('mousemove', (e) => {
+  if (e.clientX <= 35 || sidebarMenu.contains(e.target)) {
+    mainLayout.classList.remove('collapsed');
+  } else {
+    mainLayout.classList.add('collapsed');
+  }
+});
+
+// --- Chart.js Donut Charts for Tab 2 (Survey & KPI) ---
+window.addEventListener('DOMContentLoaded', () => {
+  function renderProgressChart(canvasId, config) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    let dataValues = [];
+    let bgColors = [];
+    let labels = [];
+
+    if (config.type === 'plan') {
+      dataValues = [100];
+      bgColors = ['#d97706'];
+      labels = ['ตามแผนปฏิบัติงาน'];
+    } else if (config.type === 'split7030') {
+      const val1 = config.part1Done ? 70 : 0;
+      const val2 = config.part2Value !== undefined ? config.part2Value : 0;
+      const remaining = Math.max(0, 100 - (val1 + val2));
+
+      dataValues = [val1, val2, remaining];
+      bgColors = ['#1967d2', '#0d9448', '#e2e8f0'];
+      labels = [config.label1 || 'สำรวจภาคสนาม', config.label2 || 'นำเข้าข้อมูล/ประมวลผล', 'คงเหลือ'];
+    }
+
+    new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: dataValues,
+          backgroundColor: bgColors,
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${ctx.label}: ${ctx.raw}%`
+            }
+          }
+        }
+      },
+      plugins: [{
+        id: 'centerTextPlugin',
+        afterDraw(chart) {
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return;
+          const x = (chartArea.left + chartArea.right) / 2;
+          const y = (chartArea.top + chartArea.bottom) / 2;
+          ctx.save();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#0f2b54';
+          ctx.font = 'bold 13px "Noto SansThai", sans-serif';
+          ctx.fillText(config.centerText, x, y);
+          ctx.restore();
+        }
+      }]
+    });
+  }
+
+  renderProgressChart('kpiKhaoChaison', { type: 'split7030', part1Done: true, part2Value: 0, label1: 'สำรวจเชิงพื้นที่ (70%)', label2: 'นำเข้าข้อมูล (0%)', centerText: '70%' });
+  renderProgressChart('kpiNaThawi', { type: 'split7030', part1Done: true, part2Value: 10, label1: 'สำรวจเชิงพื้นที่ (70%)', label2: 'นำเข้าข้อมูล (10%)', centerText: '80%' });
+  renderProgressChart('kpiLaNgu', { type: 'plan', centerText: '0%' });
+  renderProgressChart('kpiHatYai', { type: 'plan', centerText: '0%' });
+  renderProgressChart('kpiBetong', { type: 'plan', centerText: '0%' });
+
+  renderProgressChart('elevKhaoChaison', { type: 'split7030', part1Done: true, part2Value: 0, label1: 'เก็บข้อมูลในพื้นที่ (70%)', label2: 'ประมวลผล (0%)', centerText: '70%' });
+  renderProgressChart('elevNaThawi', { type: 'plan', centerText: '0%' });
+  renderProgressChart('elevLaNgu', { type: 'plan', centerText: '0%' });
+});
+
+
+// --- MongoDB Dashboard Logic for Tab 3 ---
+const CONFIG = {
+    apiUrl: "/api/dashboard", 
+    timeoutMs: 15000
+};
+
+let barChartInst = null;
+let donutChartInst = null;
+let modalChartInst = null;
+let globalRawData = [];
+
+const fmt = n => Number(n||0).toLocaleString("th-TH");
+const pct = n => `${Number(n||0).toFixed(2)}%`;
+
+function updateHeaderPeriod() {
+    const yearSelect = document.getElementById("yearSelect").value;
+    const quarterSelect = document.getElementById("quarterSelect").value;
+    document.getElementById("headerSubtitle").textContent = `ไตรมาส ${quarterSelect} ปีงบประมาณ ${yearSelect}`;
+}
+
+document.getElementById("yearSelect").addEventListener("change", updateHeaderPeriod);
+document.getElementById("quarterSelect").addEventListener("change", updateHeaderPeriod);
+updateHeaderPeriod();
+
+function setConnection(ok, text){
+    const dot = document.getElementById("connDot");
+    dot.className = "status-dot-sys " + (ok ? "bg-emerald-500" : "bg-red-500");
+    document.getElementById("connText").textContent = text;
+}
+
+async function fetchMongo(){
+    const year = document.getElementById("yearSelect").value;
+    const quarter = document.getElementById("quarterSelect").value;
+
+    try {
+        const res = await fetch(
+            `${CONFIG.apiUrl}?year=${encodeURIComponent(year)}&quarter=${encodeURIComponent(quarter)}`,
+            { cache: "no-store" }
+        );
+
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json.ok === false) {
+            throw new Error(json.error || "ไม่สามารถติดต่อ API ได้");
+        }
+
+        const arr = Array.isArray(json.data) ? json.data : [];
+
+        setConnection(true, "เชื่อมต่อ API สำเร็จ");
+        document.getElementById("modeText").textContent = "ข้อมูลจริงจาก MongoDB Atlas";
+        document.getElementById("lastSync").textContent = "ดึงข้อมูลล่าสุด: " + new Date().toLocaleString("th-TH");
+        document.getElementById("notice").style.display = "none";
+
+        globalRawData = arr;
+        return arr;
+    } catch(err) {
+        setConnection(false, "เชื่อมต่อ API/MongoDB ไม่สำเร็จ");
+        document.getElementById("modeText").textContent = "ไม่ใช้ข้อมูลจำลอง";
+        document.getElementById("lastSync").textContent = "เกิดข้อผิดพลาด: " + err.message;
+        document.getElementById("notice").style.display = "block";
+        document.getElementById("noticeText").textContent = "ไม่สามารถดึงข้อมูลจริงจาก MongoDB Atlas ได้: " + err.message;
+
+        globalRawData = [];
+        return [];
+    }
+}
+
+function aggregate(arr){
+    return arr.reduce((a, r) => {
+        const m = r.metrics || {};
+        a.customers += m.customer_count || 0;
+        a.imported += m.imported_customer_count || 0;
+        a.pipe += m.pipe_length_m || 0;
+        a.valve += m.valve_count || 0;
+        a.hydrant += m.fire_hydrant_count || 0;
+        a.leak += m.leak_point_count || 0;
+        return a;
+    }, { customers: 0, imported: 0, pipe: 0, valve: 0, hydrant: 0, leak: 0 });
+}
+
+function renderUI(arr) {
+    if (!arr || arr.length === 0) {
+        document.getElementById("notice").style.display = "block";
+        document.getElementById("noticeText").textContent = "ไม่พบข้อมูลจริงใน MongoDB สำหรับปีงบประมาณ/ไตรมาสที่เลือก";
+        return;
+    }
+
+    const agg = aggregate(arr);
+    const completionPct = agg.customers ? (agg.imported / agg.customers * 100) : 0;
+    
+    document.getElementById("kpiCompletion").textContent = pct(completionPct);
+    document.getElementById("kpiBranches").textContent = arr.length;
+    document.getElementById("kpiCustomers").textContent = fmt(agg.customers);
+    document.getElementById("kpiImported").textContent = fmt(agg.imported);
+    document.getElementById("kpiImportedPct").textContent = `(${pct(completionPct)})`;
+    document.getElementById("kpiPending").textContent = fmt(Math.max(0, agg.customers - agg.imported));
+    document.getElementById("kpiPipe").textContent = fmt(agg.pipe);
+    document.getElementById("kpiValve").textContent = fmt(agg.valve);
+    document.getElementById("kpiHydrant").textContent = fmt(agg.hydrant);
+    document.getElementById("kpiLeak").textContent = fmt(agg.leak);
+
+    if (!donutChartInst) {
+        donutChartInst = new ApexCharts(document.querySelector("#donutChart"), {
+            series: [completionPct, 100 - completionPct],
+            chart: { type: 'donut', height: 110, sparkline: { enabled: true } },
+            colors: ['#439a58', '#e2e8f0'],
+            plotOptions: { pie: { donut: { size: '75%', background: 'transparent' }, expandOnClick: false } },
+            stroke: { show: true, width: 3, colors: ['#ffffff'] },
+            tooltip: { enabled: false }, dataLabels: { enabled: false }
+        });
+        donutChartInst.render();
+    } else {
+        donutChartInst.updateSeries([completionPct, 100 - completionPct]);
+    }
+
+    const sorted = [...arr].map(r => {
+        const m = r.metrics || {};
+        const branchName = (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา');
+        
+        const total = m.customer_count || 0;
+        const imported = m.imported_customer_count || 0;
+        const pending = Math.max(0, total - imported);
+        
+        let p = m.completion_percentage;
+        if (p === undefined || p === null) {
+            p = total ? (imported / total * 100) : 0;
+        }
+
+        const s1662Raw = m.smart_1662_percentage;
+        const s1662 = (s1662Raw !== undefined && s1662Raw !== null && s1662Raw !== "" && Number.isFinite(Number(s1662Raw))) ? Number(s1662Raw) : null;
+
+        return { 
+            name: branchName, 
+            pct: Number(p) > 100 ? 100 : Number(p), 
+            remain: Number(p) > 100 ? 0 : 100 - Number(p),
+            imported: imported,
+            pending: pending,
+            total: total,
+            leak: m.leak_point_count || 0,
+            smart1662: s1662
+        };
+    }).sort((a, b) => a.pct - b.pct);
+
+    const chartOptions = {
+        series: [
+            { name: 'นำเข้าแล้ว', data: sorted.map(s => s.pct) }, 
+            { name: 'คงเหลือ', data: sorted.map(s => s.remain) }
+        ],
+        chart: { type: 'bar', height: 360, stacked: true, toolbar: { show: false }, fontFamily: 'Noto Sans Thai' },
+        colors: ['#439a58', '#e76c35'],
+        plotOptions: { bar: { horizontal: false, columnWidth: '60%', borderRadius: 2 } },
+        dataLabels: {
+            enabled: true,
+            formatter: function (val, opt) {
+                if (opt.seriesIndex === 0 && val > 0 && val < 100) return val.toFixed(1) + "%";
+                if (opt.seriesIndex === 0 && val === 100) return "100%";
+                return "";
+            },
+            style: { colors: ['#fff'], fontSize: '10px', fontWeight: 700 }
+        },
+        stroke: { width: 0 },
+        xaxis: { 
+            categories: sorted.map(s => s.name),
+            labels: { rotate: -45, style: { fontSize: '11px', fontWeight: 700, colors: '#475569' } }
+        },
+        yaxis: { max: 100, labels: { formatter: (val) => val + "%", style: { fontSize: '12px', fontWeight: 700, colors: '#475569' } } },
+        legend: { show: false },
+        grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+        tooltip: {
+            y: {
+                formatter: function (val, { seriesIndex, dataPointIndex }) {
+                    const item = sorted[dataPointIndex];
+                    if (seriesIndex === 0) {
+                        return `${fmt(item.imported)} ราย (${val.toFixed(2)}%)`;
+                    } else {
+                        return `${fmt(item.pending)} ราย (${val.toFixed(2)}%)`;
+                    }
+                }
+            }
+        }
+    };
+
+    if (!barChartInst) {
+        barChartInst = new ApexCharts(document.querySelector("#barChart"), chartOptions);
+        barChartInst.render();
+    } else {
+        barChartInst.updateSeries([
+            { name: 'นำเข้าแล้ว', data: sorted.map(s => s.pct) }, 
+            { name: 'คงเหลือ', data: sorted.map(s => s.remain) }
+        ]);
+        barChartInst.updateOptions({ 
+            xaxis: { categories: sorted.map(s => s.name) },
+            tooltip: chartOptions.tooltip
+        });
+    }
+
+    const top3Water = sorted.slice(0, 3);
+    document.getElementById("rankingWater").innerHTML = top3Water.map((item, index) => `
+        <div class="flex justify-between items-center text-[14px] font-bold py-1">
+            <div class="flex items-center gap-3">
+                <span class="text-slate-400 w-4 text-right text-sm">${index + 1}</span>
+                <span class="${index === 0 ? 'text-red-600' : 'text-slate-700'}">กปภ.สาขา${item.name} (${item.pct.toFixed(2)}%)</span>
+            </div>
+            <div class="text-slate-600 font-semibold text-sm">
+                คงเหลือ <span class="text-orange-600 font-bold">${fmt(item.pending)}</span> ราย
+            </div>
+        </div>
+        ${index < 2 ? '<hr class="border-slate-100">' : ''}
+    `).join('');
+
+    const sortedSmart1662 = [...sorted]
+        .filter(item => item.smart1662 !== null)
+        .sort((a, b) => a.smart1662 - b.smart1662)
+        .slice(0, 3);
+
+    document.getElementById("rankingLeak").innerHTML = sortedSmart1662.length
+        ? sortedSmart1662.map((item, index) => `
+            <div class="flex justify-between items-center text-[14px] font-bold text-slate-700 py-1">
+                <div class="flex items-center gap-3">
+                    <span class="text-slate-400 w-4 text-right text-sm">${index + 1}</span>
+                    <span class="${index === 0 ? 'text-red-600' : 'text-slate-700'}">กปภ.สาขา${item.name} (${item.smart1662.toFixed(2)}%)</span>
+                </div>
+                <span class="text-blue-600 font-bold text-sm">Smart 1662</span>
+            </div>
+            ${index < 2 ? '<hr class="border-slate-100">' : ''}
+        `).join('')
+        : '<div class="text-xs text-slate-500 py-2">ยังไม่มีข้อมูล Smart 1662 ในช่วงเวลานี้</div>';
+}
+
+function openSmart1662Modal() {
+    if (!globalRawData || globalRawData.length === 0) {
+        alert("ยังไม่มีข้อมูลดิบจาก MongoDB กรุณากดปุ่มดึงข้อมูลก่อน");
+        return;
+    }
+    document.getElementById("modalTitle").textContent = "สรุปผลงาน Smart 1662 แยกตามสาขา";
+    document.getElementById("modalSubtitle").textContent = "แสดงเปอร์เซ็นต์ความสำเร็จเรียงลำดับจากมากไปน้อย";
+    document.getElementById("modalLegend").innerHTML = `
+        <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-emerald-500 rounded-[3px]"></span> ผ่านเกณฑ์ (≥ 95%)</div>
+        <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-amber-500 rounded-[3px]"></span> ปานกลาง (90% - 94.99%)</div>
+        <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 bg-rose-500 rounded-[3px]"></span> ต่ำกว่าเกณฑ์ (< 90%)</div>
+    `;
+
+    const branchData = globalRawData.map(r => {
+        const m = r.metrics || {};
+        const branchName = (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา');
+        return { name: branchName, val: Number(m.smart_1662_percentage || 0) };
+    }).sort((a, b) => b.val - a.val);
+
+    document.getElementById("assetModal").classList.remove("hidden");
+    if (modalChartInst) modalChartInst.destroy();
+
+    const chartHeight = Math.max(450, branchData.length * 32);
+    const barColors = branchData.map(d => d.val >= 95 ? '#10b981' : d.val >= 90 ? '#f59e0b' : '#ef4444');
+
+    modalChartInst = new ApexCharts(document.querySelector("#modalChart"), {
+        series: [{ name: 'เปอร์เซ็นต์ Smart 1662', data: branchData.map(d => d.val) }],
+        chart: { type: 'bar', height: chartHeight, toolbar: { show: false }, fontFamily: 'Noto Sans Thai' },
+        plotOptions: { bar: { horizontal: true, barHeight: '65%', borderRadius: 4, distributed: true, dataLabels: { position: 'top' } } },
+        colors: barColors,
+        dataLabels: { enabled: true, formatter: (val) => val.toFixed(2) + "%", offsetX: 10, style: { fontSize: '11px', fontWeight: 700, colors: ['#334155'] } },
+        xaxis: { categories: branchData.map(d => d.name), max: 100, labels: { formatter: (val) => val + "%" } },
+        yaxis: { labels: { style: { fontSize: '12px', fontWeight: 700, colors: '#475569' } } },
+        legend: { show: false },
+        grid: { borderColor: '#f1f5f9', strokeDashArray: 4 }
+    });
+    modalChartInst.render();
+}
+
+function openAssetModal(type) {
+    if (!globalRawData || globalRawData.length === 0) {
+        alert("ยังไม่มีข้อมูลดิบจาก MongoDB กรุณากดปุ่มดึงข้อมูลก่อน");
+        return;
+    }
+    let title = "", unit = "", color = "#0ea5e9", dataKey = "";
+    if (type === 'pipe') { title = "ข้อมูลแนวท่อประปา แยกรายสาขา"; unit = "เมตร"; color = "#0284c7"; dataKey = "pipe_length_m"; }
+    else if (type === 'valve') { title = "ข้อมูลประตูน้ำ แยกรายสาขา"; unit = "ตัว"; color = "#0369a1"; dataKey = "valve_count"; }
+    else if (type === 'hydrant') { title = "ข้อมูลหัวดับเพลิง แยกรายสาขา"; unit = "ตัว"; color = "#e11d48"; dataKey = "fire_hydrant_count"; }
+    else if (type === 'leak') { title = "ข้อมูลจุดท่อรั่ว แยกรายสาขา"; unit = "จุด"; color = "#f97316"; dataKey = "leak_point_count"; }
+
+    document.getElementById("modalTitle").textContent = title;
+    document.getElementById("modalSubtitle").textContent = "จำแนกตามรายสาขา (เรียงลำดับจากมากไปน้อย)";
+    document.getElementById("modalLegend").innerHTML = "";
+
+    const branchData = globalRawData.map(r => {
+        const m = r.metrics || {};
+        return { name: (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา'), val: m[dataKey] || 0 };
+    }).sort((a, b) => b.val - a.val);
+
+    document.getElementById("assetModal").classList.remove("hidden");
+    if (modalChartInst) modalChartInst.destroy();
+
+    const chartHeight = Math.max(400, branchData.length * 30);
+    modalChartInst = new ApexCharts(document.querySelector("#modalChart"), {
+        series: [{ name: title, data: branchData.map(d => d.val) }],
+        chart: { type: 'bar', height: chartHeight, toolbar: { show: false }, fontFamily: 'Noto Sans Thai' },
+        plotOptions: { bar: { horizontal: true, barHeight: '65%', borderRadius: 4, dataLabels: { position: 'top' } } },
+        colors: [color],
+        dataLabels: { enabled: true, formatter: (val) => fmt(val) + " " + unit, offsetX: 10, style: { fontSize: '11px', fontWeight: 700, colors: ['#334155'] } },
+        xaxis: { categories: branchData.map(d => d.name), labels: { formatter: (val) => fmt(val) } },
+        yaxis: { labels: { style: { fontSize: '12px', fontWeight: 700, colors: '#475569' } } },
+        grid: { borderColor: '#f1f5f9', strokeDashArray: 4 }
+    });
+    modalChartInst.render();
+}
+
+function closeAssetModal() {
+    document.getElementById("assetModal").classList.add("hidden");
+}
+
+async function loadData() {
+    const data = await fetchMongo();
+    renderUI(data);
+}
+
+document.getElementById("sync").addEventListener("click", loadData);
+</script>
+</body>
+</html>
