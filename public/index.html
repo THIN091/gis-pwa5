@@ -16,6 +16,15 @@
 <style>
 :root{--navy:#0f2b54;--blue:#1967d2;--cyan:#00a8cc;--pale:#f0f5fb;--ink:#1e293b;--muted:#475569;--line:#cbd5e1;--green:#0d9448;--orange:#d97706;--red:#dc2626}
 *{box-sizing:border-box}
+html { -webkit-text-size-adjust: 100%; }
+img, canvas, svg { max-width: 100%; }
+button, input, select, textarea { max-width: 100%; }
+.content, .panel, .card, .survey-card { min-width: 0; }
+#barChart, #donutChart, #modalChart { min-width: 0; max-width: 100%; }
+#assetModal { padding: 10px; }
+#assetModal > div { min-width: 0; overflow: hidden; }
+#modalLegend { min-width: 0; }
+
 body{margin:0;background:#f8fafc;color:var(--ink);font-family:"Noto Sans Thai","Leelawadee UI","Tahoma",sans-serif;font-size:15px;line-height:1.5}
 
 .topbar{background:linear-gradient(120deg,#0f2b54 0%,#1967d2 58%,#00a8cc 100%);color:white;padding:30px clamp(20px,4vw,56px);position:relative;overflow:hidden;box-shadow:0 10px 28px rgba(15,43,84,0.15)}
@@ -106,17 +115,107 @@ body{margin:0;background:#f8fafc;color:var(--ink);font-family:"Noto Sans Thai","
   .task-ojt{grid-template-columns:46px 1fr auto;row-gap:12px}
   .task-ojt .ojt-media{grid-column:2 / -1}
 }
-@media(max-width:850px){
-  .layout{grid-template-columns:1fr}
-  .sidebar{position:static;display:flex;overflow-x:auto;gap:6px;padding:10px;border-left:1px solid var(--line);width:100%}
+
+@media (max-width: 850px) {
+  .wrap { margin: 14px 0; padding: 0 12px 24px; }
+  .layout, .layout.collapsed {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .layout.collapsed .sidebar {
+    display: flex;
+    position: static;
+    width: 100%;
+    min-width: 0;
+    opacity: 1;
+    visibility: visible;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar { box-shadow: 0 4px 14px rgba(15,43,84,.06); }
   .side-title{display:none}
-  .tab{min-width:200px;margin:0}
+  .tab {
+    flex: 0 0 auto;
+    min-width: 190px;
+    max-width: 78vw;
+    padding: 11px 12px;
+    gap: 10px;
+    margin: 0;
+  }
+  .num { width: 38px; height: 38px; }
+  .content { width: 100%; }
+  .panel-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .panel-head h2 { font-size: 21px; }
+  .card, .survey-card {
+    padding: 18px;
+    border-radius: 15px;
+  }
+  .task { grid-template-columns: 40px minmax(0,1fr); gap: 10px; }
+  .task > .tag-plan { grid-column: 2; justify-self: start; white-space: normal; }
+  .task-ojt { grid-template-columns: 40px minmax(0,1fr); gap: 10px; }
+  .task-ojt .ojt-media, .task-ojt .tag-plan { grid-column: 2; }
+  .ojt-media { flex-wrap: wrap; }
+  .branch-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+  .branch-card { min-width: 0; }
+  .branch-title { overflow-wrap: anywhere; }
+  .legend-box { gap: 8px 12px; }
 }
-@media(max-width:520px){
-  .branch-grid{grid-template-columns:1fr 1fr}
-  .branch-card{padding:12px 8px}
-  .branch-title{font-size:12px}
-  .task,.task-ojt{grid-template-columns:1fr;gap:8px}
+
+@media (max-width: 520px) {
+  body { font-size: 14px; }
+  .topbar { padding: 22px 16px 24px; }
+  .topbar h1 {
+    font-size: 23px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .topbar p { font-size: 13px; }
+  .eyebrow { font-size: 11px; letter-spacing: .7px; }
+  .wrap { padding: 0 9px 20px; }
+  .tab { min-width: 174px; max-width: 82vw; font-size: 13px; }
+  .tab small { font-size: 11px; }
+  .panel-head h2 { font-size: 19px; }
+  .pill { font-size: 11px; padding: 6px 10px; }
+  .card, .survey-card { padding: 14px 12px; margin-bottom: 12px; }
+  .card h3, .survey-card h3 { font-size: 17px; }
+  .desc, .survey-card > p { font-size: 13px; }
+  .task, .task-ojt { grid-template-columns: 1fr; gap: 8px; padding: 14px 0; }
+  .task > .tag-plan, .task-ojt .ojt-media, .task-ojt .tag-plan { grid-column: 1; }
+  .task-icon { width: 38px; height: 38px; }
+  .ojt-media { align-items: stretch; flex-direction: column; }
+  .ojt-img-card { min-width: 0; }
+  .branch-grid { grid-template-columns: minmax(0,1fr); }
+  .branch-card { padding: 14px; }
+  .branch-title { font-size: 13px; min-height: 0; }
+  .branch-chart { max-width: 190px; }
+  .legend-box { flex-direction: column; gap: 6px; }
+  .filter-box { width: 100%; min-height: 40px; }
+  .btn-sys { min-height: 40px; }
+  #assetModal { padding: 8px; align-items: center; }
+  #assetModal > div {
+    width: 100%;
+    max-height: 92vh;
+    padding: 14px;
+    border-radius: 14px;
+  }
+  #modalTitle { font-size: 17px; line-height: 1.4; padding-right: 8px; }
+  #modalSubtitle { font-size: 12px; }
+  #assetModal > div > div:last-child {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #modalLegend { gap: 8px; }
+  .footer { font-size: 11px; padding-top: 20px; }
 }
 
 /* Login gate */
@@ -162,7 +261,7 @@ body.authenticated .login-gate{display:none}
 
 <main class="wrap">
   <div class="layout collapsed" id="mainLayout">
-    <!-- เมนูด้านซ้าย (Auto Hide/Show ชิดขอบซ้าย ทำงานเมื่อเอาเมาส์ไปแตะ) -->
+    <!-- เมนูด้านซ้าย (Auto Hide/Show ชิดขอบซ้าย ทำงานเมื่อเอาเมาส์ไปแตะ / มือถือจะแสดงผลเป็นแถบเลื่อนแนวนอน) -->
     <nav class="sidebar" id="sidebarMenu" aria-label="เมนูหลัก">
       <div class="side-title">✦ เมนูแผนดำเนินงาน <span>GIS WORK PLAN · 2570</span></div>
       <button class="tab active" data-tab="support"><span class="num">01</span><span>งานสนับสนุนและบริการข้อมูล<small>หัวข้อ 1 · 2 · 3 · 7</small></span></button>
@@ -543,7 +642,6 @@ function setAuthenticated(ok) {
   document.body.classList.toggle('authenticated', ok);
   if (ok) {
     sessionStorage.setItem('gis2570Authenticated', 'true');
-    // โหลดข้อมูล Dashboard ทันทีหลังล็อกอินสำเร็จ
     loadData();
   } else {
     sessionStorage.removeItem('gis2570Authenticated');
