@@ -560,7 +560,6 @@ body.authenticated .login-gate{display:none}
                     <div class="text-[12px] font-extrabold"><span id="kpiHydrant">0</span> ตัว</div>
                   </div>
                 </div>
-                <!-- เปลี่ยนไอคอนท่อรั่วเป็นสัญลักษณ์หยดน้ำที่มีรอยแตกร้าว -->
                 <div class="flex items-center gap-2.5 asset-card" onclick="openAssetModal('leak')">
                   <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0zM11 7h2v4h-2zm0 6h2v2h-2z"/></svg>
@@ -602,7 +601,6 @@ body.authenticated .login-gate{display:none}
                   <span>📊 ข้อมูลสรุปรายสาขา</span>
                 </button>
               </div>
-              <!-- แก้ไขข้อความเรียงจำนวนท่อแตกรั่ว จากต่ำไปสูง และตัดคำว่า โดยใช้ข้อมูลจริงจาก MongoDB ออก -->
               <div class="text-xs text-slate-500 mb-3">เรียงจำนวนท่อแตกรั่ว จากต่ำไปสูง</div>
               <div id="rankingLeak" class="space-y-4"></div>
             </div>
@@ -906,6 +904,8 @@ function renderUI(arr) {
         };
     }).sort((a, b) => a.pct - b.pct);
 
+    const isMobile = window.innerWidth <= 520;
+
     const chartOptions = {
         series: [
             { name: 'นำเข้าแล้ว', data: sorted.map(s => s.pct) }, 
@@ -920,7 +920,13 @@ function renderUI(arr) {
                 if (opt.seriesIndex === 0 && val >= 5) return val.toFixed(0) + "%";
                 return "";
             },
-            style: { colors: ['#fff'], fontSize: '9px', fontWeight: 700 }
+            // ปรับการแสดงผลข้อความบนแท่งกราฟให้อยู่ในแนวตั้งเมื่อหน้าจอแคบหรือซ้อนทับกัน
+            style: { 
+                colors: ['#fff'], 
+                fontSize: isMobile ? '8px' : '9px', 
+                fontWeight: 700 
+            },
+            orientation: isMobile ? 'vertical' : 'horizontal'
         },
         stroke: { width: 0 },
         xaxis: { 
