@@ -915,18 +915,13 @@ function renderUI(arr) {
         colors: ['#439a58', '#e76c35'],
         plotOptions: { bar: { horizontal: false, columnWidth: '60%', borderRadius: 2 } },
         dataLabels: {
-            enabled: true,
+            // ซ่อนตัวเลขเปอร์เซ็นต์บนแท่งกราฟอัตโนมัติเมื่อเป็นหน้าจอมือถือ เพื่อความสะอาดตาและป้องกันการซ้อนทับ
+            enabled: !isMobile,
             formatter: function (val, opt) {
                 if (opt.seriesIndex === 0 && val >= 5) return val.toFixed(0) + "%";
                 return "";
             },
-            // ปรับการแสดงผลข้อความบนแท่งกราฟให้อยู่ในแนวตั้งเมื่อหน้าจอแคบหรือซ้อนทับกัน
-            style: { 
-                colors: ['#fff'], 
-                fontSize: isMobile ? '8px' : '9px', 
-                fontWeight: 700 
-            },
-            orientation: isMobile ? 'vertical' : 'horizontal'
+            style: { colors: ['#fff'], fontSize: '9px', fontWeight: 700 }
         },
         stroke: { width: 0 },
         xaxis: { 
@@ -1054,7 +1049,7 @@ function openAssetModal(type) {
     const branchData = globalRawData.map(r => {
         const m = r.metrics || {};
         return { name: (r.branch && r.branch.name) ? r.branch.name : (r.name || 'ไม่ระบุสาขา'), val: m[dataKey] || 0 };
-    }).sort((a, b) => b.val - a.val);
+    }).sort((a, b) => a.val - b.val);
 
     document.getElementById("assetModal").classList.remove("hidden");
     if (modalChartInst) modalChartInst.destroy();
